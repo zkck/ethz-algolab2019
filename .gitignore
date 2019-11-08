@@ -1,0 +1,5 @@
+testsets/
+test/
+
+CMakeFiles/
+.vscode/

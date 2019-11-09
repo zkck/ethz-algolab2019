@@ -3,3 +3,11 @@ test/
 
 CMakeFiles/
 .vscode/
+
+CMakeCache.txt
+CMakeLists.txt
+CMakeLists.txt.bak
+
+Makefile
+
+cmake_install.cmake

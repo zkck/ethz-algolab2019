@@ -11,3 +11,6 @@ CMakeLists.txt.bak
 Makefile
 
 cmake_install.cmake
+
+main
+a.out

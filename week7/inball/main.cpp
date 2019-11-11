@@ -30,12 +30,12 @@ int main(int argc, char const *argv[])
         // abs(ax + by + cz + d) / length of norm <= radius
         // 
         // expanding abs to 2 equations
-        // ax + by + cz + d <=   radius * length of norm
-        // ax + by + cz + d >= - radius * length of norm
+        // ax + by + cz - d <=   radius * length of norm
+        // ax + by + cz - d >= - radius * length of norm
         //
         // making it linear
-        //  ax + by + cz - (radius * length of norm) <= - d
-        // -ax - by - cz - (radius * length of norm) <=   d
+        //  ax + by + cz - (radius * length of norm) <=   d
+        // -ax - by - cz - (radius * length of norm) <= - d
 
         Program lp (CGAL::SMALLER, false, 0, false, 0);
 
@@ -49,15 +49,19 @@ int main(int argc, char const *argv[])
             for (size_t j = 0; j < d; j++)
             {
                 int a; std::cin >> a;
-                lp.set_a(j, i, a);
+                lp.set_a(j, 2 * i,      a);
+                lp.set_a(j, 2 * i + 1, -a);
                 sum += a * a;
             }
 
             length_of_norms[i] = std::sqrt(sum);
+            lp.set_a(radius, 2 * i,     -length_of_norms[i]);
+            lp.set_a(radius, 2 * i + 1, -length_of_norms[i]);
             
             int b; std::cin >> b;
 
-            lp.set_b(i, b);
+            lp.set_b(2 * i,      b);
+            lp.set_b(2 * i + 1, -b);
         }
 
         lp.set_c(radius, -1);

@@ -31,15 +31,17 @@ int main(int argc, char const *argv[])
         // 
         // expanding abs to 2 equations
         // ax + by + cz + d <=   radius * length of norm
-        // ax + by + cz + d <= - radius * length of norm
+        // ax + by + cz + d >= - radius * length of norm
         //
         // making it linear
-        // ax + by + cz - (radius * length of norm) <= - d
-        // ax + by + cz + (radius * length of norm) <= - d
+        //  ax + by + cz - (radius * length of norm) <= - d
+        // -ax - by - cz - (radius * length of norm) <=   d
 
         Program lp (CGAL::SMALLER, false, 0, false, 0);
 
         int radius = d;
+
+        int length_of_norms[n] = { 0 };
 
         for (size_t i = 0; i < n; i++)
         {
@@ -47,28 +49,17 @@ int main(int argc, char const *argv[])
             for (size_t j = 0; j < d; j++)
             {
                 int a; std::cin >> a;
-                // std::cout << a << " * a" << j << " + ";
-                lp.set_a(j, 2 * i,     a);
-                lp.set_a(j, 2 * i + 1, a);
+                lp.set_a(j, i, a);
                 sum += a * a;
             }
 
-            int length_of_norm = std::sqrt(sum);
-            // std::cout << -length_of_norm << " * radius <= ";
-
-            lp.set_a(radius, 2 * i,      length_of_norm);
-            lp.set_a(radius, 2 * i + 1, -length_of_norm);
+            length_of_norms[i] = std::sqrt(sum);
             
             int b; std::cin >> b;
-            // std::cout << -b << std::endl;
 
-            lp.set_b(2 * i,     b);
-            lp.set_b(2 * i + 1, b);
+            lp.set_b(i, b);
         }
 
-        // lp.set_l(radius, true, 0);
-
-        // simply maximize radius (minimize -radius)
         lp.set_c(radius, -1);
 
         Solution s = CGAL::solve_linear_program(lp, ET());

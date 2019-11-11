@@ -49,19 +49,15 @@ int main(int argc, char const *argv[])
             for (size_t j = 0; j < d; j++)
             {
                 int a; std::cin >> a;
-                lp.set_a(j, 2 * i,      a);
-                lp.set_a(j, 2 * i + 1, -a);
+                lp.set_a(j, i, a);
                 sum += a * a;
             }
 
             length_of_norms[i] = std::sqrt(sum);
-            lp.set_a(radius, 2 * i,     -length_of_norms[i]);
-            lp.set_a(radius, 2 * i + 1, -length_of_norms[i]);
+            lp.set_a(radius, i, length_of_norms[i]);
             
             int b; std::cin >> b;
-
-            lp.set_b(2 * i,      b);
-            lp.set_b(2 * i + 1, -b);
+            lp.set_b(i, b);
         }
 
         lp.set_c(radius, -1);
@@ -71,7 +67,10 @@ int main(int argc, char const *argv[])
         if (s.is_optimal())
         {
             double result = -CGAL::to_double(s.objective_value());
-            std::cout << (int) std::floor(result) << std::endl;
+            if (result < 0)
+                std::cout << "none" << std::endl;
+            else
+                std::cout << (int) std::floor(result) << std::endl;
         }
         else if (s.is_unbounded())
         {

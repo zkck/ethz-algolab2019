@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 
+#define NUM_CHARS 26
+
 // BGL include
 #include <boost/graph/adjacency_list.hpp>
 
@@ -36,68 +38,125 @@ class edge_adder {
   }
 };
 
+int to_index(char c) {
+    assert((int) 'A' <= (int) c && (int) c <= (int) 'Z');
+    return (int) c - (int) 'A'; 
+}
+
+char to_char(int i) {
+    assert(0 <= i && i < NUM_CHARS);
+    return (char) ((int) 'A' + i);
+}
+
 
 int main(int argc, char const *argv[])
 {
+    // // debug
+    // std::cout << "F=" << to_index('F') << std::endl;
+    // std::cout << "3=" << to_char(3) << std::endl;
+    
     int num_tests; std::cin >> num_tests;
-    while (num_tests-- > 0) {
-
+    while (num_tests-- > 0)
+    {
+        
+        // height and width of the paper
         int h, w; std::cin >> h >> w;
 
+        // note from the crime scene
         std::string note; std::cin >> note;
 
-        char front[h][w], back[h][w];
+        size_t note_counts[NUM_CHARS] = { 0 };
+        for (char c: note)
+            note_counts[to_index(c)]++;
+
+        // characters of front and back side
+
+        char front_side[h][w], back_side[h][w];
 
         for (size_t i = 0; i < h; i++)
-        {
             for (size_t j = 0; j < w; j++)
-            {
-                std::cin >> front[i][j];
-            }
-        }
+                std::cin >> front_side[i][j];
 
         for (size_t i = 0; i < h; i++)
-        {
             for (size_t j = 0; j < w; j++)
-            {
-                std::cin >> back[i][j];
-            }
-        }
+                std::cin >> back_side[i][j];
+            
 
-        graph G(2 + h * w + note.length());
+        // counts of each character on front and back side
+
+        size_t front_counts[NUM_CHARS] = { 0 }, back_counts[NUM_CHARS] = { 0 };
+
+        for (size_t i = 0; i < h; i++)
+            for (size_t j = 0; j < w; j++)
+                front_counts[to_index(front_side[i][j])]++;
+        
+        for (size_t i = 0; i < h; i++)
+            for (size_t j = 0; j < w; j++)
+                back_counts[to_index(back_side[i][j])]++;
+
+        // adjacency matrix counts of edges to and from
+
+        size_t conn_counts[NUM_CHARS][NUM_CHARS] = { 0 };
+
+        for (size_t i = 0; i < h; i++)
+            for (size_t j = 0; j < w; j++) {
+                size_t back_i = i;
+                size_t back_j = w - j - 1;
+                char f = front_side[i][j];
+                char b = back_side[back_i][back_j];
+                conn_counts[to_index(f)][to_index(b)]++;
+            }
+
+        // hope this works
+
+        graph G(1 + 3 * NUM_CHARS + 1);
         edge_adder adder(G);
 
-        for (size_t idx = 0; idx < h * w; idx++)
+        size_t source = 0;
+        size_t sink = 1 + 3 * NUM_CHARS;
+
+        // layer 0-1, 1-2, 1-3
+        for (size_t i = 0; i < NUM_CHARS; i++)
         {
-            adder.add_edge(0, 1 + idx, 1);
+            if (note_counts[i] > 0)
+                adder.add_edge(source, 1 + i, note_counts[i]);
 
-            int i = idx / w;
-            int j = idx % w;
+            // connect to back and front
+            if (front_counts[i] > 0)
+                adder.add_edge(1 + i, 1 +     NUM_CHARS + i, front_counts[i]);
 
-            int back_i = i;
-            int back_j = w - j - 1;
+            if (back_counts[i] > 0)
+                adder.add_edge(1 + i, 1 + 2 * NUM_CHARS + i, back_counts[i]);
+        }
 
-            for (size_t c = 0; c < note.length(); c++)
-            {
-                if (note[c] == back[back_i][back_j] || note[c] == front[i][j])
-                    adder.add_edge(1 + idx, 1 + (h * w) + c, 1);                
+        // layer 2-3
+        for (size_t i = 0; i < NUM_CHARS; i++)
+            for (size_t j = 0; j < NUM_CHARS; j++) {
+                size_t l1 = 1 +     NUM_CHARS + i;
+                size_t l2 = 1 + 2 * NUM_CHARS + j;
+
+                size_t count = conn_counts[i][j];
+                if (count > 0)
+                    adder.add_edge(l1, l2, count);
             }
-        }
 
-        for (size_t i = 0; i < note.length(); i++)
+        // layer 3-4
+        for (size_t i = 0; i < NUM_CHARS; i++)
         {
-            adder.add_edge(1 + h * w + i, 1 + h * w + note.length(), 1);
+            if (back_counts[i] > 0)
+                adder.add_edge(1 + 2 * NUM_CHARS + i, sink, back_counts[i]);
         }
 
-        int flow = boost::push_relabel_max_flow(G, 0, 1 + h * w + note.length());
+        long flow = boost::push_relabel_max_flow(G, source, sink);
 
-        if (flow == note.length())
+        if (flow == note.length()) {
             std::cout << "Yes" << std::endl;
-        else
+        } else if (flow < note.length()) {
             std::cout << "No" << std::endl;
+        } else {
+            std::cout << "Wtf" << std::endl;
+        }
         
-        
-            
     }
     return 0;
 }

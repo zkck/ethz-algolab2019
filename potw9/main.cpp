@@ -19,7 +19,7 @@ int main(int argc, char const *argv[])
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0)
     {
-        // parsing section
+        // PARSING SECTION
         
         int n, m, h, w; std::cin >> n >> m >> h >> w;
 
@@ -39,18 +39,21 @@ int main(int argc, char const *argv[])
 
         double slope = h / (double) w;
 
-        // constraints section
+        // CONSTRAINTS SECTION 1: Declaration
 
         Program lp (CGAL::SMALLER, true, 1, false, 0);
 
         int row = 0;
+
+        // CONSTRAINTS SECTION 2: Free nails constraints
 
         for (size_t i = 0; i < n; i++)
         {
             IT x1 = free_nails[i].first;
             IT y1 = free_nails[i].second;
 
-            // constraints against free nails
+            // create constraints for each unique pair of free nails
+
             for (size_t j = i + 1; j < n; j++)
             {
                 IT x2, y2;
@@ -60,12 +63,14 @@ int main(int argc, char const *argv[])
 
                 if (std::abs(slope_now) <= slope)
                 {
+                    // the pair of free nails require a x-constraint
                     lp.set_a(i, row, w);
                     lp.set_a(j, row, w);
                     lp.set_b(row++, 2 * std::abs(x1 - x2));
                 }
                 else
                 {
+                    // the pair of free nails require a y-constraint
                     lp.set_a(i, row, h);
                     lp.set_a(j, row, h);
                     lp.set_b(row++, 2 * std::abs(y1 - y2));
@@ -73,9 +78,15 @@ int main(int argc, char const *argv[])
             }
         }
 
+        // CONSTRAINTS SECTION 3: Fixed nails constraints
+
+        // x-constraints
+
         for (size_t i = 0; i < n; i++)
         {
             IT x1, y1; std::tie(x1, y1) = free_nails[i];
+
+            // find the closest fixed nails on both sides
 
             int left  = -1;
             int right = -1;
@@ -86,6 +97,9 @@ int main(int argc, char const *argv[])
             {
                 IT x2, y2; std::tie(x2, y2) = fixed_nails[j];
                 double slope_now = (y2 - y1) / (double) (x2 - x1);
+
+                // check if a x-constraint is applicable
+
                 if (std::abs(slope_now) <= slope) {
                     if (x2 < x1 && (left < 0 || left_x2 < x2)) {
                         left = j;
@@ -98,16 +112,12 @@ int main(int argc, char const *argv[])
                 }
             }
 
-            // now add the constraints
-
-            // left
             if (left >= 0)
             {
                 lp.set_a(i, row, w);
                 lp.set_b(row++, 2 * (x1 - left_x2) - w);
             }
 
-            // right
             if (right >= 0)
             {
                 lp.set_a(i, row, w);
@@ -115,10 +125,13 @@ int main(int argc, char const *argv[])
             }
         }
 
+        // y-constraints
 
         for (size_t i = 0; i < n; i++)
         {
             IT x1, y1; std::tie(x1, y1) = free_nails[i];
+
+            // find the closest fixed nails above and below
 
             int above  = -1;
             int below = -1;
@@ -129,6 +142,9 @@ int main(int argc, char const *argv[])
             {
                 IT x2, y2; std::tie(x2, y2) = fixed_nails[j];
                 double slope_now = (y2 - y1) / (double) (x2 - x1);
+
+                // check if y-constraint is applicable
+
                 if (std::abs(slope_now) > slope) {
                     if (y2 < y1 && (below < 0 || below_y2 < y2)) {
                         below = j;
@@ -141,16 +157,12 @@ int main(int argc, char const *argv[])
                 }
             }
 
-            // now add the constraints
-
-            // above
             if (above >= 0)
             {
                 lp.set_a(i, row, h);
                 lp.set_b(row++, 2 * (above_y2 - y1) - h);
             }
 
-            // below
             if (below >= 0)
             {
                 lp.set_a(i, row, h);
@@ -158,38 +170,22 @@ int main(int argc, char const *argv[])
             }
         }
         
-        
+        // OBJECTIVE FUNCTION
 
         for (size_t i = 0; i < n; i++)
         {
             lp.set_c(i, -1);
         }
 
-        Solution s = CGAL::solve_linear_program(lp, ET());
+        // SOLUTION SECTION
 
-        // // debug
-        // auto fuck = s.variable_values_begin();
-        // for (size_t i = 0; i < n; i++)
-        // {
-        //     std::cout << "i=" << i << " " << CGAL::to_double(*(fuck + i)) << std::endl;
-        // }
-        
+        Solution s = CGAL::solve_linear_program(lp, ET());
 
         if (s.is_optimal())
         {
             double result = -CGAL::to_double(s.objective_value()) * 2 * (h + w);
-            std::cout << (int) std::ceil(result) << std::endl;
+            std::cout << (long) std::ceil(result) << std::endl;
         }
-        else if (s.is_unbounded())
-        {
-            std::cout << "unbounded" << std::endl;
-        }
-        else if (s.is_infeasible())
-        {
-            std::cout << "infeasible" << std::endl;
-        }
-        
-        
     }
     
     return 0;

@@ -43,18 +43,8 @@ int to_index(char c) {
     return (int) c - (int) 'A'; 
 }
 
-char to_char(int i) {
-    assert(0 <= i && i < NUM_CHARS);
-    return (char) ((int) 'A' + i);
-}
-
-
 int main(int argc, char const *argv[])
 {
-    // // debug
-    // std::cout << "F=" << to_index('F') << std::endl;
-    // std::cout << "3=" << to_char(3) << std::endl;
-    
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0)
     {
@@ -71,17 +61,14 @@ int main(int argc, char const *argv[])
 
         // characters of front and back side
 
-        char front_side[h][w], back_side[h][w];
+        std::string front_side[h], back_side[h];
 
         for (size_t i = 0; i < h; i++)
-            for (size_t j = 0; j < w; j++)
-                std::cin >> front_side[i][j];
+            std::cin >> front_side[i];
 
         for (size_t i = 0; i < h; i++)
-            for (size_t j = 0; j < w; j++)
-                std::cin >> back_side[i][j];
+            std::cin >> back_side[i];
             
-
         // counts of each character on front and back side
 
         size_t front_counts[NUM_CHARS] = { 0 }, back_counts[NUM_CHARS] = { 0 };
@@ -151,12 +138,9 @@ int main(int argc, char const *argv[])
 
         if (flow == note.length()) {
             std::cout << "Yes" << std::endl;
-        } else if (flow < note.length()) {
-            std::cout << "No" << std::endl;
         } else {
-            std::cout << "Wtf" << std::endl;
+            std::cout << "No" << std::endl;
         }
-        
     }
     return 0;
 }

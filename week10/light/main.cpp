@@ -53,30 +53,17 @@ int main(int argc, char const *argv[])
             Point p = participants[i];
             Delaunay::Vertex_handle l = T.nearest_vertex(p);
 
-            // radius in which a lamp must be to light up the participant
+            // Radius in which a lamp must be to light up the participant
             size_t limit = (radii[i] + h) * (radii[i] + h);
-            
-            // first group of testsets:
-            //   - at least one participant is still in the game after
-            //     all lamps have been lit
-            //
-            // which means that the winners are those that have not been
-            // hit
 
-            // if (CGAL::squared_distance(p, l->point()) >= limit)
-            //     std::cout << i << " ";
-
-            // second group of testsets:
-            //   - no info
-            //
-            // try bfs from nearest vertex?
-
-            // we are minimizing the eliminating round
+            // We are minimizing the eliminating round
             size_t eliminating_round = n;
 
             std::vector<bool> visited(n, false);
             std::queue<Delaunay::Vertex_handle> Q;
 
+            // If the nearest vertex is not within the limit, this means
+            // that we should not start the BFS.
             if (CGAL::squared_distance(p, l->point()) < limit) {
                 visited[l->info()] = true;
                 Q.push(l);
@@ -87,7 +74,12 @@ int main(int argc, char const *argv[])
                 const Delaunay::Vertex_handle u = Q.front();
                 Q.pop();
 
-                // check if eliminating round
+                // Check if this light eliminates the participant
+                // earlier.
+                //
+                // If this new eliminating round is earlier
+                // than the current winning round, then we do not need to
+                // continue the BFS.
                 if (u->info() < eliminating_round) {
                     eliminating_round = u->info();
                     if (eliminating_round < winning_round)
@@ -97,7 +89,7 @@ int main(int argc, char const *argv[])
                 Delaunay::Vertex_circulator c = T.incident_vertices(u);
                 do
                 {
-                    if (T.is_infinite(c)) continue;
+                    if (T.is_infinite(c)) continue; // seriously don't know wtf this does
                     bool in_limit = CGAL::squared_distance(p, c->point()) < limit;
                     if (in_limit && !visited[c->info()])
                     {
@@ -107,6 +99,11 @@ int main(int argc, char const *argv[])
                 } while (++c != T.incident_vertices(u));
             }
 
+            // If the eliminating round of this vertex is the same,
+            // then we can add it to the list of winners.
+            //
+            // If it is strictly higher, then we can clear the old
+            // list of winners as they are now invalid.
             if (eliminating_round >= winning_round) {
                 if (eliminating_round > winning_round) {
                     winning_round = eliminating_round;

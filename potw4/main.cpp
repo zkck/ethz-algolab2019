@@ -41,8 +41,7 @@ int main(int argc, char const *argv[])
         }
 
         costs.clear();
-        costs.resize(n);
-        
+
         for (size_t i = 0; i < n; i++)
         {
             int c; std::cin >> c;
@@ -74,8 +73,9 @@ int main(int argc, char const *argv[])
         // step 2
         int selecting = selecting_cost(0);
         int not_selecting = 0;
-        for (int c : children[0])
+        for (int c : children[0]) {
             not_selecting += selecting_cost(c);
+        }
 
         std::cout << std::min(selecting, not_selecting) << std::endl;
         

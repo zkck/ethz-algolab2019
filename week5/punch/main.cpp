@@ -24,12 +24,13 @@ int main(int argc, char const *argv[])
         int remaining = k;
         int cost = 0;
         while (remaining > 0) {
+            // find best drink
             int bd = -1;
             double bd_ratio = -std::numeric_limits<double>::infinity();
             for (size_t i = 0; i < n; i++)
             {
                 std::pair<int, int> bev = beverages[i];
-                double ratio = bev.second / (double) bev.first;
+                double ratio = std::min(bev.second, remaining) / (double) bev.first;
                 if (ratio > bd_ratio) {
                     bd = i;
                     bd_ratio = ratio;

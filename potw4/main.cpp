@@ -2,7 +2,7 @@
 #include <vector>
 #include <queue>
 
-// memo
+// memoization
 std::vector<int> memo;
 
 // as per tree modeling of the problem
@@ -11,13 +11,37 @@ std::vector<std::vector<int>> children;
 // costs of rebuilding a city
 std::vector<int> costs;
 
-int selecting_cost(int i) {
-    // if (memo[i] > 0) return memo[i];
+int force_cover(int i) {
+    if (memo[i] >= 0) return memo[i];
+
+    // option 1: select the node and cover subchildren
+
     int result = costs[i];
     for (int c1 : children[i])
         for (int c2 : children[c1])
-            result += selecting_cost(c2);
-    // memo[i] = result;
+            result += force_cover(c2);
+
+    // option 2: cover using the children
+
+    for (int c : children[i])
+    {
+        int cc = costs[c];
+
+        // add costs of covering subchildren
+        for (int c1 : children[c])
+            for (int c2 : children[c1])
+                cc += force_cover(c2);
+    
+
+        // and costs of covering other children
+        for (int other : children[i])
+            if (c != other)
+                cc += force_cover(other);
+
+        if (cc < result) result = cc;
+    }
+
+    memo[i] = result;
     return result;
 }
 
@@ -48,7 +72,8 @@ int main(int argc, char const *argv[])
             costs.push_back(c);
         }
 
-
+        memo.clear();
+        memo.resize(n, -1);
 
         // step 1, build the tree
 
@@ -70,14 +95,7 @@ int main(int argc, char const *argv[])
             }
         }
 
-        // step 2
-        int selecting = selecting_cost(0);
-        int not_selecting = 0;
-        for (int c : children[0]) {
-            not_selecting += selecting_cost(c);
-        }
-
-        std::cout << std::min(selecting, not_selecting) << std::endl;
+        std::cout << force_cover(0) << std::endl;
         
     }
     

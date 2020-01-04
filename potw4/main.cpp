@@ -54,14 +54,13 @@ int main(int argc, char const *argv[])
         // get number of cities
         int n; std::cin >> n;
 
-        // adjacency information
-        std::vector<int> adj[n];
+        children.clear();
+        children.resize(n);
 
         for (size_t stage = 0; stage < n - 1; stage++)
         {
             int i, j; std::cin >> i >> j;
-            adj[i].push_back(j);
-            adj[j].push_back(i);
+            children[i].push_back(j);
         }
 
         costs.clear();
@@ -74,26 +73,6 @@ int main(int argc, char const *argv[])
 
         memo.clear();
         memo.resize(n, -1);
-
-        // step 1, build the tree
-
-        children.clear();
-        children.resize(n);
-        
-        std::queue<int> Q;
-        std::vector<bool> visited(n, false);
-        Q.push(0);
-        visited[0] = true;
-        while (!Q.empty()) {
-            int v = Q.front(); Q.pop();
-            for (int u : adj[v]) {
-                if (!visited[u]) {
-                    children[v].push_back(u);
-                    Q.push(u);
-                    visited[u] = true;
-                }
-            }
-        }
 
         std::cout << force_cover(0) << std::endl;
         

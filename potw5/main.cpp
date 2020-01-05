@@ -6,6 +6,11 @@
 typedef CGAL::Exact_predicates_inexact_constructions_kernel IK;
 typedef CGAL::Exact_predicates_exact_constructions_kernel   EK;
 
+int compare_bikers(IK::Ray_2 &b1, IK::Ray_2 &b2)
+{
+    return b1.source().y() > b2.source().y();
+}
+
 int main(int argc, char const *argv[])
 {
     int num_tests; std::cin >> num_tests;
@@ -16,43 +21,65 @@ int main(int argc, char const *argv[])
 
         for (size_t i = 0; i < n; i++)
         {
-            unsigned long y0, x1, y1; std::cin >> y0 >> x1 >> y1;
+            long y0, x1, y1; std::cin >> y0 >> x1 >> y1;
             IK::Ray_2 biker(IK::Point_2(0, y0), IK::Point_2(x1, y1));
             bikers.push_back(biker);
         }
 
-        std::vector<bool> rides_forever_into_the_sunrise(n, true);
+        std::sort(bikers.begin(), bikers.end(), compare_bikers);
+
+        std::vector<IK::FT> ydiffs;
+        for (auto &b : bikers) {
+            IK::FT ydiff = b.point(1).y() - b.source().y();
+            ydiffs.push_back(ydiff);
+            std::cout << "  " << b << " is going " << ydiff << std::endl;
+        }
+
+        std::vector<int> rides_forever_into_the_sunshine;
 
         for (size_t i = 0; i < n; i++)
         {
-            for (size_t j = i + 1; j < n && rides_forever_into_the_sunrise[i]; j++)
-            {
-                IK::Ray_2 biker1 = bikers[i], biker2 = bikers[j];
-                if (CGAL::do_intersect(biker1, biker2)) {
-                    auto o = CGAL::intersection(biker1, biker2);
-                    if (const IK::Point_2* op = boost::get<IK::Point_2>(&*o)) {
+
+            std::vector<int> range;
+            if (ydiffs[i] > 0) // going up
+                for (int j = 0; j < i; j++)
+                    range.push_back(j);
+            else if (ydiffs[i] < 0) // going down
+                for (int j = i + 1; j < n; j++)
+                    range.push_back(j);
+            else {
+                std::cout << "  straight, ignoring..." << std::endl;
+                rides_forever_into_the_sunshine.push_back(i);
+                continue;
+            }
+            std::cout << "  range size is " << range.size() << std::endl;
+            bool is_cut_off = false;
+            for (int j : range) {
+                if (is_cut_off) break;
+                if (CGAL::do_intersect(bikers[i], bikers[j])) {
+                    auto o = CGAL::intersection(bikers[i], bikers[j]);
+                    if (IK::Point_2 *op = boost::get<IK::Point_2>(&*o)) {
+                        std::cout << "  " << *op << std::endl;
                         auto comp = CGAL::compare_distance_to_point(
-                            biker1.source(),
-                            biker2.source(),
+                            bikers[i].source(),
+                            bikers[j].source(),
                             *op
                         );
                         switch (comp)
                         {
-                        case CGAL::SMALLER:
-                            // biker1 is closer to the intersection than biker2
-                            rides_forever_into_the_sunrise[j] = false;
-                            break;
                         case CGAL::LARGER:
-                            // biker2 is closer to the intersection than biker1
-                            rides_forever_into_the_sunrise[i] = false;
+                            // all good, continue
+                            std::cout << "  " << bikers[i] << " beats " << bikers[j] << std::endl;
+                            break;
+                        case CGAL::SMALLER:
+                            // the biker is cut off
+                            std::cout << "  " << bikers[i] << " loses to " << bikers[j] << std::endl;
+                            is_cut_off = true;
                             break;
                         case CGAL::EQUAL:
-                            if (biker1.source().y() < biker2.source().y())
-                                // biker1 is on the right of biker2
-                                rides_forever_into_the_sunrise[j] = false;
-                            else
-                                // biker2 is on the right of biker1
-                                rides_forever_into_the_sunrise[i] = false;
+                            // same distance
+                            std::cout << "  " << bikers[i] << " equal " << bikers[j] << std::endl;
+                            if (ydiffs[i] < 0) is_cut_off = true;
                             break;
                         default:
                             break;
@@ -60,14 +87,12 @@ int main(int argc, char const *argv[])
                     }
                 }
             }
+            if (!is_cut_off) rides_forever_into_the_sunshine.push_back(i);
         }
         
-        for (size_t i = 0; i < n; i++)
+        for (int i : rides_forever_into_the_sunshine)
         {
-            if (rides_forever_into_the_sunrise[i])
-            {
-                std::cout << i << " ";
-            }
+            std::cout << i <<  " ";
         }
         
         std::cout << std::endl;

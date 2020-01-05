@@ -1,9 +1,10 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <limits>
 
 // memoization
-std::vector<int> memo;
+std::vector<int> uncovered_memo, covered_memo;
 
 // as per tree modeling of the problem
 std::vector<std::vector<int>> children;
@@ -11,37 +12,41 @@ std::vector<std::vector<int>> children;
 // costs of rebuilding a city
 std::vector<int> costs;
 
-int force_cover(int i) {
-    if (memo[i] >= 0) return memo[i];
+int uncovered_cover(int i);
+int covered_cover(int i);
+int selected_cover(int i);
 
-    // option 1: select the node and cover subchildren
+int uncovered_cover(int i) {
+    if (uncovered_memo[i] >= 0) return uncovered_memo[i];
+    int selection_cost = selected_cover(i);
+    int exclusion_cost = std::numeric_limits<int>::max();
+    for (int c1 : children[i]) {
+        int child_cost = selected_cover(c1);
+        for (int c2 : children[i])
+            if (c1 != c2)
+                child_cost += uncovered_cover(c2);
+        if (child_cost < exclusion_cost) exclusion_cost = child_cost;
+    }
+    int result = std::min(selection_cost, exclusion_cost);
+    uncovered_memo[i] = result;
+    return result;
+}
 
+int covered_cover(int i) {
+    if (covered_memo[i] >= 0) return covered_memo[i];
+    int selection_cost = selected_cover(i);
+    int exclusion_cost = 0;
+    for (int c : children[i])
+        exclusion_cost += uncovered_cover(c);
+    int result = std::min(selection_cost, exclusion_cost);
+    covered_memo[i] = result;
+    return result;
+}
+
+int selected_cover(int i) {
     int result = costs[i];
     for (int c1 : children[i])
-        for (int c2 : children[c1])
-            result += force_cover(c2);
-
-    // option 2: cover using the children
-
-    for (int c : children[i])
-    {
-        int cc = costs[c];
-
-        // add costs of covering subchildren
-        for (int c1 : children[c])
-            for (int c2 : children[c1])
-                cc += force_cover(c2);
-    
-
-        // and costs of covering other children
-        for (int other : children[i])
-            if (c != other)
-                cc += force_cover(other);
-
-        if (cc < result) result = cc;
-    }
-
-    memo[i] = result;
+        result += covered_cover(c1);
     return result;
 }
 
@@ -71,10 +76,12 @@ int main(int argc, char const *argv[])
             costs.push_back(c);
         }
 
-        memo.clear();
-        memo.resize(n, -1);
+        uncovered_memo.clear();
+        uncovered_memo.resize(n, -1);
+        covered_memo.clear();
+        covered_memo.resize(n, -1);
 
-        std::cout << force_cover(0) << std::endl;
+        std::cout << uncovered_cover(0) << std::endl;
         
     }
     

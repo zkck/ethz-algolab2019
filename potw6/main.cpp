@@ -53,8 +53,6 @@ int main(int argc, char const *argv[])
         // step 1: run connected components to be able to translate the
         // teleportation network to vertices
 
-        std::cout << "  strongly connected components..." << std::endl;
-
         // Connected components
         // ====================
         std::vector<int> component_map(n);      // We MUST use such a vector as an Exterior Property Map: Vertex -> Component
@@ -69,8 +67,25 @@ int main(int argc, char const *argv[])
         for (int i = 0; i < n; ++i)
             component_vertices[component_map[i]].push_back(i);
 
-        // Iterate over all components
-        for (std::vector<vertex_desc> &comp : component_vertices) {
+        // new approach: create a vertex for each scc
+        //   - each vertex of the ncc && teleportation network can enter the conn comp for the cost
+
+        weighted_graph newG(n + ncc);
+        weight_map new_weights = boost::get(boost::edge_weight, newG);
+
+        boost::graph_traits<weighted_graph>::edge_iterator edges, edges_end;
+        boost::tie(edges, edges_end) = boost::edges(G);
+        // add all old edges
+        for (; edges != edges_end; edges++) {
+            int v1 = boost::source(*edges, G);
+            int v2 = boost::target(*edges, G);
+            int c = weights[*edges];
+            edge_desc e = boost::add_edge(v1, v2, newG).first; new_weights[e] = c;
+        }
+
+        for (size_t i = 0; i < ncc; i++)
+        {
+            std::vector<vertex_desc> &comp = component_vertices[i];
             std::vector<int> intersection;
             std::set_intersection(
                 tp_vertices.begin(), tp_vertices.end(),
@@ -78,19 +93,16 @@ int main(int argc, char const *argv[])
                 std::back_inserter(intersection)
             );
             size_t isize = intersection.size();
-            std::cout << "  making edges...\n";
-            for (int v1 : intersection)
-                for (int v2 : intersection)
-                    if (v1 != v2) {
-                        edge_desc e = boost::add_edge(v1, v2, G).first; weights[e] = isize - 1;
-                    }
+            for (int v : intersection) {
+                edge_desc e;
+                e = boost::add_edge(v, n + i, newG).first; new_weights[e] = isize - 1;
+                e = boost::add_edge(n + i, v, newG).first; new_weights[e] = 0;
+            }
         }
 
-        std::cout << "  dijkstra..." << std::endl;
-
         // step 2: call dijkstra and choose the best among
-        std::vector<int> dist_map(n);
-        dijkstra_dist(G, n - 1, dist_map);
+        std::vector<int> dist_map(n + ncc);
+        dijkstra_dist(newG, n - 1, dist_map);
         
         int smallest = std::numeric_limits<int>::max();
         for (size_t i = 0; i < k; i++)

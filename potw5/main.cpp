@@ -6,7 +6,7 @@
 typedef CGAL::Exact_predicates_inexact_constructions_kernel IK;
 typedef CGAL::Exact_predicates_exact_constructions_kernel   EK;
 
-int compare_bikers(std::pair<IK::Ray_2, size_t> b1, std::pair<IK::Ray_2, size_t> b2) {
+int compare_bikers(std::pair<EK::Segment_2, size_t> b1, std::pair<EK::Segment_2, size_t> b2) {
     return b1.first.source().y() > b2.first.source().y();
 }
 
@@ -17,11 +17,11 @@ int main(int argc, char const *argv[])
     {
         int n; std::cin >> n;
 
-        std::vector<std::pair<IK::Ray_2, size_t>> bikers;
+        std::vector<std::pair<EK::Segment_2, size_t>> bikers;
         for (size_t i = 0; i < n; i++)
         {
             long y0, x1, y1; std::cin >> y0 >> x1 >> y1;
-            IK::Ray_2 biker(IK::Point_2(0, y0), IK::Point_2(x1, y1));
+            EK::Segment_2 biker(EK::Point_2(0, y0), EK::Point_2(x1, y1));
             bikers.push_back(std::make_pair(biker, i));
         }
 
@@ -31,74 +31,60 @@ int main(int argc, char const *argv[])
         for (auto &b : bikers)
             ydiffs.push_back(b.first.point(1).y() - b.first.source().y());
 
-        std::vector<size_t> sunshine;
+        std::vector<bool> sunshine(n, true);
 
+        size_t last = 0;
+        for (size_t i = 1; i < n; i++)
+        {
+            size_t idx_curr = bikers[i].second, idx_last = bikers[last].second;
+
+            EK::Segment_2 previous = bikers[last].first, current = bikers[i].first;
+
+            EK::FT abs_curr = 
+                (current.target().y() - current.source().y()) /
+                (current.target().x() - current.source().x());
+            EK::FT abs_prev = 
+                (previous.target().y() - previous.source().y()) /
+                (previous.target().x() - previous.source().x());
+
+            std::cout << "  abs_curr=" << abs_curr << " abs_prev" << abs_prev << std::endl;
+
+            auto comp = CGAL::compare_slope(previous, current);
+            switch (comp)
+            {
+            case CGAL::SMALLER:
+                std::cout << "  " << previous << " is smaller than " << current << std::endl;
+                // the previous biker has smaller slope, there is a conflict
+                //   -> need to compare absolute values
+                if (abs_curr <= abs_prev) {
+                    // previous loses, the new opponent is now current
+                    std::cout << "    " << previous << " loses!" << std::endl;
+                    sunshine[idx_last] = false;
+                    last = i;
+                } else {
+                    // current loses, which means last remains the opponent
+                    std::cout << "    " << current << " loses!" << std::endl;
+                    sunshine[idx_curr] = false;
+                }
+                break;
+            case CGAL::LARGER:
+                std::cout << "  " << previous << " is larger than " << current << std::endl;
+                last = i;
+                break;
+            case CGAL::EQUAL:
+                std::cout << "  " << previous << " is equal to " << current << std::endl;
+                last = i;
+                break;
+            default:
+                break;
+            }
+        }
+        
         for (size_t i = 0; i < n; i++)
         {
-            size_t    index = bikers[i].second;
-            IK::Ray_2 biker = bikers[i].first;
-
-            // slope of the biker
-            EK::FT biker_slope = CGAL::abs(biker.direction().dy() / biker.direction().dx());
-
-            bool is_cut_off = false;
-            if (ydiffs[i] < 0)
-            {
-                for (size_t j = i + 1; j < n && !is_cut_off; j++)
-                {
-                    IK::Ray_2 rival = bikers[j].first;
-                    if (CGAL::do_intersect(biker, rival))
-                    {
-                        if (ydiffs[j] <= 0)
-                        {
-                            // if there is an intersection and both are going downwards, the
-                            // biker has lost
-                            is_cut_off = true;
-                        }
-                        else 
-                        {
-                            // if same distance to point, the one with the flattest slope wins,
-                            // or the rival if they are equal (rival has right of way)
-                            EK::FT rival_slope = CGAL::abs(rival.direction().dy() / rival.direction().dx());
-                            if (rival_slope <= biker_slope)
-                                is_cut_off = true;
-                        }
-                    }
-                }
-            }
-            else if (ydiffs[i] > 0)
-            {
-                for (size_t j = 0; j < i && !is_cut_off; j++)
-                {
-                    IK::Ray_2 rival = bikers[j].first;
-                    if (CGAL::do_intersect(biker, rival))
-                    {
-                        if (ydiffs[j] >= 0)
-                        {
-                            // if there is an intersection and both are going downwards, the
-                            // biker has lost
-                            is_cut_off = true;
-                        }
-                        else 
-                        {
-                            // if same distance to point, the one with the flattest slope wins,
-                            // or the rival if they are equal (rival has right of way)
-                            EK::FT rival_slope = CGAL::abs(rival.direction().dy() / rival.direction().dx());
-                            if (rival_slope < biker_slope)
-                                is_cut_off = true;
-                        }
-                    }
-
-                }
-            }
-
-            if (!is_cut_off) sunshine.push_back(index);
+            if (sunshine[i]) std::cout << i << " ";
         }
-
-        std::sort(sunshine.begin(), sunshine.end());
         
-        for (size_t i : sunshine)
-            std::cout << i << " ";
         std::cout << std::endl;
     }
     

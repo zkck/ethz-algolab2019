@@ -16,7 +16,7 @@ int main(int argc, char const *argv[])
 
         for (size_t i = 0; i < n; i++)
         {
-            int y0, x1, y1; std::cin >> y0 >> x1 >> y1;
+            long y0, x1, y1; std::cin >> y0 >> x1 >> y1;
             IK::Ray_2 biker(IK::Point_2(0, y0), IK::Point_2(x1, y1));
             bikers.push_back(biker);
         }

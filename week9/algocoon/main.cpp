@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <vector>
 #include <queue>
+#include <limits>
 
 // BGL include
 #include <boost/graph/adjacency_list.hpp>
@@ -45,7 +46,6 @@ int main(int argc, char const *argv[])
 
         graph G(n);
         edge_adder adder(G);
-
         auto rc_map = boost::get(boost::edge_residual_capacity, G);
 
         for (size_t i = 0; i < m; i++)
@@ -54,13 +54,23 @@ int main(int argc, char const *argv[])
             adder.add_edge(a, b, c);
         }
 
-        // first testset: source is 0 and destination is n - 1
-        int src = 0, dst = n - 1;
-        
-        long flow = boost::push_relabel_max_flow(G, src, dst);
-        std::cout << flow << std::endl;
+        int src = -1, dst = -1;
+        long best_flow = std::numeric_limits<long>::max();
+        for (int i = 0; i < 1; i++) {
+            for (int j = 0; j < n; j++) {
+                if (i == j) continue;
+                long flow = boost::push_relabel_max_flow(G, i, j);
+                if (flow < best_flow) {
+                    best_flow = flow;
+                    src = i;
+                    dst = j;
+                }
+            }
+        }
 
-                // BFS to find vertex set S
+        boost::push_relabel_max_flow(G, src, dst);
+        
+        // BFS to find vertex set S
         std::vector<int> vis(n, false); // visited flags
         std::queue<int> Q; // BFS queue (from std:: not boost::)
         vis[src] = true; // Mark the source as visited
@@ -80,13 +90,13 @@ int main(int argc, char const *argv[])
             }
         }
 
-        // Output S
+        std::cout << best_flow << std::endl;
         std::cout << num_visited;
-        for (int i = 0; i < n; ++i) {
-                if (vis[i]) std::cout << " " << i;
+        for (size_t v = 0; v < n; v++) {
+            if (vis[v]) std::cout << " " << v;
         }
-        std::cout << "\n";
-
+        std::cout << std::endl;
+        
     }
     
     return 0;

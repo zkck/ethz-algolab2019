@@ -4,7 +4,7 @@
 #include <limits>
 
 // memoization
-std::vector<int> uncovered_memo, covered_memo;
+std::vector<int> uncovered_memo, covered_memo, selected_memo;
 
 // as per tree modeling of the problem
 std::vector<std::vector<int>> children;
@@ -19,14 +19,25 @@ int selected_cover(int i);
 int uncovered_cover(int i) {
     if (uncovered_memo[i] >= 0) return uncovered_memo[i];
     int selection_cost = selected_cover(i);
-    int exclusion_cost = std::numeric_limits<int>::max();
+
+    // 
+    std::vector<int> children_uncovered_costs;
+    int children_uncovered_costs_total = 0;
     for (int c1 : children[i]) {
-        int child_cost = selected_cover(c1);
-        for (int c2 : children[i])
-            if (c1 != c2)
-                child_cost += uncovered_cover(c2);
-        if (child_cost < exclusion_cost) exclusion_cost = child_cost;
+        int cost = uncovered_cover(c1);
+        children_uncovered_costs.push_back(cost);
+        children_uncovered_costs_total += cost;
     }
+
+    //
+    int exclusion_cost = std::numeric_limits<int>::max();
+    for (int c_idx = 0; c_idx < children[i].size(); c_idx++) {
+        int cost = children_uncovered_costs_total 
+            - children_uncovered_costs[c_idx] 
+            + selected_cover(children[i][c_idx]);
+        if (cost < exclusion_cost) exclusion_cost = cost;
+    }
+    
     int result = std::min(selection_cost, exclusion_cost);
     uncovered_memo[i] = result;
     return result;
@@ -44,9 +55,11 @@ int covered_cover(int i) {
 }
 
 int selected_cover(int i) {
+    if (selected_memo[i] >= 0) return selected_memo[i];
     int result = costs[i];
     for (int c1 : children[i])
         result += covered_cover(c1);
+    selected_memo[i] = result;
     return result;
 }
 
@@ -80,6 +93,11 @@ int main(int argc, char const *argv[])
         uncovered_memo.resize(n, -1);
         covered_memo.clear();
         covered_memo.resize(n, -1);
+        selected_memo.clear();
+        selected_memo.resize(n, -1);
+
+        // hint implementation: do a DFS to prep the memo
+
 
         std::cout << uncovered_cover(0) << std::endl;
         

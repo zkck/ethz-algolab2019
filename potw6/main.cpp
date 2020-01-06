@@ -56,7 +56,7 @@ int main(int argc, char const *argv[])
 
         // Strongly connected components
         // =============================
-        std::vector<int> component_map(n + n);
+        std::vector<int> component_map(n);
         int ncc = boost::strong_components(G,
             boost::make_iterator_property_map(component_map.begin(),
             boost::get(boost::vertex_index, G)));
@@ -66,8 +66,8 @@ int main(int argc, char const *argv[])
         std::vector<std::vector<vertex_desc>> component_vertices(ncc);
 
         // Iterate over all n vertices
-        for (int i = 0; i < n; ++i)
-            component_vertices[component_map[i]].push_back(i);
+        for (int tp_vertex : tp_vertices)
+            component_vertices[component_map[tp_vertex]].push_back(tp_vertex);
 
         // new approach: create a vertex for each scc
         //   - each vertex of the ncc && teleportation network can enter the conn comp for the cost
@@ -75,15 +75,9 @@ int main(int argc, char const *argv[])
         for (size_t i = 0; i < ncc; i++)
         {
             std::vector<vertex_desc> &comp = component_vertices[i];
-            std::vector<int> intersection;
-            std::set_intersection(
-                tp_vertices.begin(), tp_vertices.end(),
-                comp.begin(), comp.end(),
-                std::back_inserter(intersection)
-            );
-            size_t isize = intersection.size();
+            size_t isize = comp.size();
             vertex_desc scc = boost::add_vertex(G);
-            for (int v : intersection) {
+            for (int v : comp) {
                 edge_desc e;
                 e = boost::add_edge(v, scc, G).first; weights[e] = isize - 1;
                 e = boost::add_edge(scc, v, G).first; weights[e] = 0;

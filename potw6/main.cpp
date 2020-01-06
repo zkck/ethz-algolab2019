@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
         int n, m, k, T; std::cin >> n >> m >> k >> T;
     
         // 2 * n for all the potential extra strongly connected components
-        weighted_graph G(n + n);
+        weighted_graph G(n);
         weight_map weights = boost::get(boost::edge_weight, G);
 
         // teleportation network vertices
@@ -71,7 +71,7 @@ int main(int argc, char const *argv[])
 
         // new approach: create a vertex for each scc
         //   - each vertex of the ncc && teleportation network can enter the conn comp for the cost
-
+        
         for (size_t i = 0; i < ncc; i++)
         {
             std::vector<vertex_desc> &comp = component_vertices[i];
@@ -82,15 +82,16 @@ int main(int argc, char const *argv[])
                 std::back_inserter(intersection)
             );
             size_t isize = intersection.size();
+            vertex_desc scc = boost::add_vertex(G);
             for (int v : intersection) {
                 edge_desc e;
-                e = boost::add_edge(v, n + i, G).first; weights[e] = isize - 1;
-                e = boost::add_edge(n + i, v, G).first; weights[e] = 0;
+                e = boost::add_edge(v, scc, G).first; weights[e] = isize - 1;
+                e = boost::add_edge(scc, v, G).first; weights[e] = 0;
             }
         }
 
         // step 2: call dijkstra and choose the best among
-        std::vector<int> dist_map(n + n);
+        std::vector<int> dist_map(n + ncc);
         dijkstra_dist(G, n - 1, dist_map);
         
         int smallest = std::numeric_limits<int>::max();

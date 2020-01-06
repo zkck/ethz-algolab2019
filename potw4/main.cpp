@@ -20,7 +20,8 @@ int uncovered_cover(int i) {
     if (uncovered_memo[i] >= 0) return uncovered_memo[i];
     int selection_cost = selected_cover(i);
 
-    // 
+    // calculate the cost of not covering the children to
+    // avoid recomputing the values further below
     std::vector<int> children_uncovered_costs;
     int children_uncovered_costs_total = 0;
     for (int c1 : children[i]) {
@@ -29,7 +30,8 @@ int uncovered_cover(int i) {
         children_uncovered_costs_total += cost;
     }
 
-    //
+    // find child that has the most benefit to be selected, which
+    // will then be the cost of excluding the node
     int exclusion_cost = std::numeric_limits<int>::max();
     for (int c_idx = 0; c_idx < children[i].size(); c_idx++) {
         int cost = children_uncovered_costs_total 
@@ -95,9 +97,6 @@ int main(int argc, char const *argv[])
         covered_memo.resize(n, -1);
         selected_memo.clear();
         selected_memo.resize(n, -1);
-
-        // hint implementation: do a DFS to prep the memo
-
 
         std::cout << uncovered_cover(0) << std::endl;
         

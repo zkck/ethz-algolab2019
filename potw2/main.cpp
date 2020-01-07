@@ -65,6 +65,6 @@ int main(int argc, char const *argv[])
         cout << max_gain(0, 0, n - 1) << endl;
     }
 
-    
+
     return 0;
 }

@@ -49,7 +49,7 @@ int main(int argc, char const *argv[])
                 best_i = i;
                 best_j = j;
                 best_dist = dist_to_k;
-            }        
+            }
         }
 
         std::cout << (best_j + 1) << " " << (best_i) << std::endl;

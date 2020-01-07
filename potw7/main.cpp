@@ -44,7 +44,7 @@ int main(int argc, char const *argv[])
 
         // build graph
         graph G(n + m + 2);
-        edge_adder adder(G);        
+        edge_adder adder(G);
 
         // source and sink
         int source = 0;

@@ -40,10 +40,10 @@ int main(int argc, char const *argv[])
 
             EK::Segment_2 previous = bikers[last].first, current = bikers[i].first;
 
-            EK::FT abs_curr = 
+            EK::FT abs_curr =
                 (current.target().y() - current.source().y()) /
                 (current.target().x() - current.source().x());
-            EK::FT abs_prev = 
+            EK::FT abs_prev =
                 (previous.target().y() - previous.source().y()) /
                 (previous.target().x() - previous.source().x());
 
@@ -79,14 +79,14 @@ int main(int argc, char const *argv[])
                 break;
             }
         }
-        
+
         for (size_t i = 0; i < n; i++)
         {
             if (sunshine[i]) std::cout << i << " ";
         }
-        
+
         std::cout << std::endl;
     }
-    
+
     return 0;
 }

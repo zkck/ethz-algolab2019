@@ -34,12 +34,12 @@ int uncovered_cover(int i) {
     // will then be the cost of excluding the node
     int exclusion_cost = std::numeric_limits<int>::max();
     for (int c_idx = 0; c_idx < children[i].size(); c_idx++) {
-        int cost = children_uncovered_costs_total 
-            - children_uncovered_costs[c_idx] 
+        int cost = children_uncovered_costs_total
+            - children_uncovered_costs[c_idx]
             + selected_cover(children[i][c_idx]);
         if (cost < exclusion_cost) exclusion_cost = cost;
     }
-    
+
     int result = std::min(selection_cost, exclusion_cost);
     uncovered_memo[i] = result;
     return result;
@@ -99,8 +99,8 @@ int main(int argc, char const *argv[])
         selected_memo.resize(n, -1);
 
         std::cout << uncovered_cover(0) << std::endl;
-        
+
     }
-    
+
     return 0;
 }

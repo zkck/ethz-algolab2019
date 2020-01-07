@@ -20,7 +20,7 @@ int main(int argc, char const *argv[])
     while (num_tests-- > 0)
     {
         // PARSING SECTION
-        
+
         int n, m, h, w; std::cin >> n >> m >> h >> w;
 
         std::pair<IT, IT> free_nails[n];
@@ -169,7 +169,7 @@ int main(int argc, char const *argv[])
                 lp.set_b(row++, 2 * (y1 - below_y2) - h);
             }
         }
-        
+
         // OBJECTIVE FUNCTION
 
         for (size_t i = 0; i < n; i++)
@@ -187,6 +187,6 @@ int main(int argc, char const *argv[])
             std::cout << (long) std::ceil(result) << std::endl;
         }
     }
-    
+
     return 0;
 }

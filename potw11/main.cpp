@@ -65,7 +65,7 @@ int main(int argc, char const *argv[])
 
             adder.add_edge(x + 1, y + 1, e, d);
         }
-        
+
         // what is the maximum number of suitcases he can send
         // without exceeding his budget
 
@@ -81,7 +81,7 @@ int main(int argc, char const *argv[])
             edge_desc e = adder.add_edge(0, k + 1, 0, 0);
 
             // binary search for the best
-            
+
             int lower = 0, upper = 2;
 
             // std::cout << "binary search..." << std::endl;
@@ -91,11 +91,11 @@ int main(int argc, char const *argv[])
                 // std::cout << "  lower=" << lower << " upper=" << upper << std::endl;
                 int capacity = (lower + upper) / 2;
                 c_map[e] = capacity;
-                
+
                 int fuck = boost::push_relabel_max_flow(G, 0, a + 1);
                 // if (fuck > capacity)
                 //     std::cout << "What the fuck" << std::endl;
-                
+
                 boost::cycle_canceling(G);
                 if (boost::find_flow_cost(G) > b)
                     upper = fuck;
@@ -107,6 +107,6 @@ int main(int argc, char const *argv[])
 
         }
     }
-    
+
     return 0;
 }

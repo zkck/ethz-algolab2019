@@ -14,7 +14,7 @@ typedef boost::property_map<weighted_graph, boost::edge_weight_t>::type
 typedef boost::graph_traits<weighted_graph>::edge_descriptor
     edge_desc;
 
-std::vector<edge_desc> kruskal_results(weighted_graph& g) {    
+std::vector<edge_desc> kruskal_results(weighted_graph& g) {
     std::vector<edge_desc> mst;
     boost::kruskal_minimum_spanning_tree(g, std::back_inserter(mst));
     return mst;

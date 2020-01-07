@@ -62,7 +62,7 @@ int main(int argc, char const *argv[])
             int r; std::cin >> r;
             wizards.push_back(std::pair<int, int>(r, b));
         }
-        
+
         std::cout << max_num_greedy_complex(n) << std::endl;
     }
 }

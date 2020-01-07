@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
         for (int i = 0; i < n; ++i) {
             long r, s, t, u;
             std::cin >> r >> s >> t >> u;
-                
+
             // build segment
             Point_2 p1(r, s);
             Point_2 p2(t, u);

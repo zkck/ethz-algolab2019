@@ -37,7 +37,7 @@ int max_gain(int holmes, int moriarty, int red_location, int black_location) {
     // if red meeple at target, holmes wins
     if (red_location == n - 1)
         return 1;
-    
+
     // if black meeple at target, moriarty wins
     if (black_location == n - 1)
         return 0;
@@ -69,7 +69,7 @@ int max_gain(int holmes, int moriarty, int red_location, int black_location) {
        }
         return max;
     } else {
-        int min = 2;        
+        int min = 2;
         if (moriarty % 2 == 0) {
             int in_memo = check_memo(MORIARTY_BLACK, red_location, black_location);
             if (in_memo != -1) return in_memo;

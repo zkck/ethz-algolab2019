@@ -36,7 +36,7 @@ int main(int argc, char const *argv[])
         vector<int> v;
         for (multimap<string, int>::iterator it = ret.first; it != ret.second; it++)
             v.push_back(it->second);
-        
+
         if (v.empty())
             cout << "Empty" << endl;
         else {

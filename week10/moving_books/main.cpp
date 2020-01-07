@@ -58,7 +58,7 @@ void algo()
         }
 
         // std::cout << "I am assignee " << assignee << " and I am taking " << box_count << std::endl;
-        
+
         // three cases
         //   - pile below highest pile
         //   - pile is above highest pile but we can allocate free spots

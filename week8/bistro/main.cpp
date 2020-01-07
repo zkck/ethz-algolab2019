@@ -15,7 +15,7 @@ void algo(int n)
 {
     std::vector<IK::Point_2> pts;
     pts.reserve(n);
-    
+
     for (size_t i = 0; i < n; i++)
     {
         int x, y; std::cin >> x >> y;

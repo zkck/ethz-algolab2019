@@ -45,7 +45,7 @@ int main(int argc, char const *argv[])
             for (int j = i + 1; j < n; ++j) {
                 std::vector<std::string> intersection(c);
                 auto it = std::set_intersection(
-                    keywords[i].begin(), 
+                    keywords[i].begin(),
                     keywords[i].end(),
                     keywords[j].begin(),
                     keywords[j].end(),

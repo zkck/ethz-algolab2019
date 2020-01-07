@@ -35,7 +35,7 @@ void algo(int n)
 
     std::vector<IK::Point_2> pts;
     pts.reserve(n);
-    
+
     for (size_t i = 0; i < n; i++)
     {
         int x, y; std::cin >> x >> y;
@@ -55,7 +55,7 @@ void algo(int n)
 
         IK::FT v_min_y = v->point().y();
         v_min_y = (height < 2 * v_min_y) ? height - v_min_y : v_min_y;
-        
+
         IK::FT v_min = v_min_y < v_min_x ? v_min_y : v_min_x;
         IK::FT death = v_min * v_min * 2;
 
@@ -68,7 +68,7 @@ void algo(int n)
                 IK::FT length = tri.segment(c).squared_length();
                 if (length < death) death = length;
             } while (++c != tri.incident_edges(v));
-        
+
         death_times.push_back(death);
     }
 
@@ -81,7 +81,7 @@ void algo(int n)
     printf("%d %d %d\n", to_dist(min), to_dist(half), to_dist(max));
 
 
-    
+
 }
 int main(int argc, char const *argv[])
 {

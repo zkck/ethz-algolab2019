@@ -13,13 +13,13 @@ int main(int argc, char const *argv[])
         // beverage is a (cost, volume) pair
         std::vector<std::pair<int, int>> beverages;
         beverages.reserve(n);
-        
+
         for (size_t i = 0; i < n; i++)
         {
             int c, v; std::cin >> c >> v;
             beverages.push_back(std::make_pair(c, v));
         }
-        
+
         // find best drink for remaining liters
         int remaining = k;
         int cost = 0;
@@ -42,6 +42,6 @@ int main(int argc, char const *argv[])
 
         std::cout << cost << std::endl;
     }
-    
+
     return 0;
 }

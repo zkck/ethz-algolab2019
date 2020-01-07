@@ -68,8 +68,8 @@ int main(int argc, char const *argv[])
         {
             adder.add_edge(1 + g + i, sink, 1);
         }
-        
-        
+
+
 
         for (size_t i = 0; i < l; i++)
         {
@@ -81,7 +81,7 @@ int main(int argc, char const *argv[])
         // find min cut via max flow
         long flow = boost::push_relabel_max_flow(G, source, sink);
         // std::cout << "flow: " << flow << std::endl;
-        
+
         // BFS to find vertex set S
         std::vector<int> vis(num_vertices, false);
         std::queue<int> Q;
@@ -114,13 +114,13 @@ int main(int argc, char const *argv[])
             if (vis[1 + g + i])
                 ss.push_back(i);
         }
-        
+
         std::cout << gs.size() << " " << ss.size() << std::endl;
         for (int i : gs) std::cout << i << " ";
         for (int i : ss) std::cout << i << " ";
         if (gs.size() + ss.size() > 0)
             std::cout << std::endl;
-        
+
     }
     return 0;
 }

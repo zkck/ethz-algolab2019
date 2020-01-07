@@ -2,7 +2,7 @@
 #include <queue>
 #include <set>
 #include <map>
-#include <algorithm> 
+#include <algorithm>
 using namespace std;
 
 void routine1();

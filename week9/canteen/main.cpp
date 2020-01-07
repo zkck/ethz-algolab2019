@@ -81,7 +81,7 @@ int main(int argc, char const *argv[])
         }
 
         std::cout << flow << " " << revenue << std::endl;
-        
+
     }
     return 0;
 }

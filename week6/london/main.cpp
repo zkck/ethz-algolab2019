@@ -40,7 +40,7 @@ class edge_adder {
 
 int to_index(char c) {
     assert((int) 'A' <= (int) c && (int) c <= (int) 'Z');
-    return (int) c - (int) 'A'; 
+    return (int) c - (int) 'A';
 }
 
 int main(int argc, char const *argv[])
@@ -48,7 +48,7 @@ int main(int argc, char const *argv[])
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0)
     {
-        
+
         // height and width of the paper
         int h, w; std::cin >> h >> w;
 
@@ -68,7 +68,7 @@ int main(int argc, char const *argv[])
 
         for (size_t i = 0; i < h; i++)
             std::cin >> back_side[i];
-            
+
         // counts of each character on front and back side
 
         size_t front_counts[NUM_CHARS] = { 0 }, back_counts[NUM_CHARS] = { 0 };
@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
         for (size_t i = 0; i < h; i++)
             for (size_t j = 0; j < w; j++)
                 front_counts[to_index(front_side[i][j])]++;
-        
+
         for (size_t i = 0; i < h; i++)
             for (size_t j = 0; j < w; j++)
                 back_counts[to_index(back_side[i][j])]++;

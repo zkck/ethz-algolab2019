@@ -47,7 +47,7 @@ int main(int argc, char const *argv[])
 
         std::vector<size_t> winners;
         size_t winning_round = 0; // did not work with int -1
-        
+
         for (size_t i = 0; i < m; i++)
         {
             Point p = participants[i];
@@ -116,9 +116,9 @@ int main(int argc, char const *argv[])
         for (size_t w : winners)
             std::cout << w << " ";
         std::cout << std::endl;
-        
-        
+
+
     }
-    
+
     return 0;
 }

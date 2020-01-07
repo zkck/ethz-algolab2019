@@ -66,12 +66,12 @@ int main(int argc, char const *argv[])
             v_cracks[i] = num_vertices++;
             if (i > 0)
                 adder.add_edge(v_cracks[i], num_vertices++, 1);
-            
+
             int from = i == 0 ? v_cracks[i] : v_cracks[i] + 1;
             for (const auto &r : bricks[i])
                 adder.add_edge(from, num_vertices++, 1);
         }
-        
+
 
         int v_start = 0;
         int v_end   = 2 * w + n - 1;
@@ -89,11 +89,11 @@ int main(int argc, char const *argv[])
                     adder.add_edge(num_vertices++, v_end, 1);
             }
         }
-        
+
         int flow = boost::push_relabel_max_flow(G, 0, v_end);
 
         std::cout << flow << std::endl;
-        
+
     }
     return 0;
 }

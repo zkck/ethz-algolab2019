@@ -21,7 +21,7 @@ int main(int argc, char const *argv[])
                 sum += ++needs_even;
             } else {
                 sum += needs_odd;
-                
+
                 // swap
                 int temp = needs_even;
                 needs_even = needs_odd;

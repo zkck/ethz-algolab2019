@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
         //
         // we want a distance that is smaller than some radius
         // abs(ax + by + cz + d) / length of norm <= radius
-        // 
+        //
         // expanding abs to 2 equations
         // ax + by + cz - d <=   radius * length of norm
         // ax + by + cz - d >= - radius * length of norm
@@ -55,7 +55,7 @@ int main(int argc, char const *argv[])
 
             length_of_norms[i] = std::sqrt(sum);
             lp.set_a(radius, i, length_of_norms[i]);
-            
+
             int b; std::cin >> b;
             lp.set_b(i, b);
         }
@@ -80,7 +80,7 @@ int main(int argc, char const *argv[])
         {
             std::cout << "none" << std::endl;
         }
-        
+
         std::cin >> n;
     }
     return 0;

@@ -41,7 +41,7 @@ int main(int argc, char const *argv[])
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0) {
         int n, m; std::cin >> n >> m;
-        
+
         // // points per player
         // std::vector<int> points(n, 0);
 
@@ -101,7 +101,7 @@ int main(int argc, char const *argv[])
         else
             std::cout << "no" << std::endl;
 
-        
+
 
     }
     return 0;

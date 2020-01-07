@@ -35,7 +35,7 @@ int main(int argc, char const *argv[])
 
         IK::FT min;
         bool set = false;
-        
+
         for (Edge_iterator e = t.finite_edges_begin();
             e != t.finite_edges_end();
             e++)

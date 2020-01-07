@@ -27,16 +27,16 @@ int main(int argc, char const *argv[])
             {
                 if (lengths[j] == diff)
                 {
-                    
+
                 }
             }
-            
-        }
-        
 
-        
-        
+        }
+
+
+
+
     }
-    
+
     return 0;
 }

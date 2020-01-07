@@ -13,10 +13,10 @@ int main(int argc, char const *argv[])
         {
             std::cin >> p[i];
 
-            
+
         }
-        
+
     }
-    
+
     return 0;
 }

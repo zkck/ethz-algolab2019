@@ -4,7 +4,7 @@
 #include <cmath>
 
 bool pos_ok(int l, int r) {
-    return (r - l) <= 200; 
+    return (r - l) <= 200;
 }
 
 int main(int argc, char const *argv[])

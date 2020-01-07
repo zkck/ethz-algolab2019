@@ -55,9 +55,9 @@ int main(int argc, char const *argv[])
 
         if (boom) std::cout << "no" << std::endl;
         else      std::cout << "yes" << std::endl;
-        
-        
+
+
     }
-    
+
     return 0;
 }

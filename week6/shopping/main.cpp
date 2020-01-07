@@ -41,7 +41,7 @@ int main(int argc, char const *argv[])
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0) {
         int n, m, s; std::cin >> n >> m >> s;
-        
+
         // graph with nodes and the sink
         graph G(n + 1);
         edge_adder adder(G);

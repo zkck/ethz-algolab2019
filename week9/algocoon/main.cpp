@@ -69,7 +69,7 @@ int main(int argc, char const *argv[])
         }
 
         boost::push_relabel_max_flow(G, src, dst);
-        
+
         // BFS to find vertex set S
         std::vector<int> vis(n, false); // visited flags
         std::queue<int> Q; // BFS queue (from std:: not boost::)
@@ -96,8 +96,8 @@ int main(int argc, char const *argv[])
             if (vis[v]) std::cout << " " << v;
         }
         std::cout << std::endl;
-        
+
     }
-    
+
     return 0;
 }

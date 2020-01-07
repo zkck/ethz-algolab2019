@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
             std::cin >> r >> s >> t >> u;
 
             if (!intersection) {
-                    
+
                 // build segment
                 Point_2 p1(r, s);
                 Point_2 p2(t, u);

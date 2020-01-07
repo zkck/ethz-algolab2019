@@ -28,10 +28,10 @@ int main(int argc, char const *argv[])
                 int top  = (i - 1 < 0) ? 0 : partial_sums[i - 1][j];
                 int left = (j - 1 < 0) ? 0 : partial_sums[i][j - 1];
 
-                int topleft = (i - 1 < 0 || j - 1 < 0) 
-                    ? 0 
+                int topleft = (i - 1 < 0 || j - 1 < 0)
+                    ? 0
                     : partial_sums[i - 1][j - 1];
-                
+
                 partial_sums[i][j] = (top + left) - topleft + elements[i][j];
                 cout << partial_sums[i][j] << " ";
             }

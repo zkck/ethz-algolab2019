@@ -74,14 +74,14 @@ int main(int argc, char const *argv[])
         {
             adder.add_edge(v_source, i + 1, fruit_counts[i], 0);
         }
-        
+
         int flow = boost::push_relabel_max_flow(G, v_source, v_sink);
         boost::cycle_canceling(G);
         int cost = boost::find_flow_cost(G);
 
         std::cout << "cost=" << -cost << " flow=" << flow << std::endl;
-        
+
     }
-    
+
     return 0;
 }

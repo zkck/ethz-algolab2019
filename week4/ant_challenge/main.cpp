@@ -70,8 +70,8 @@ int main(int argc, char const *argv[])
 
         weighted_graph minimum_graph(n);
         weight_map minimum_weights = boost::get(boost::edge_weight, minimum_graph);
-    
-        // for each species, construct mst and 
+
+        // for each species, construct mst and
         for (int i = 0; i < s; ++i) {
             std::vector<edge_desc> mst;
             boost::kruskal_minimum_spanning_tree(graphs[i], std::back_inserter(mst));

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <limits>
 #include <vector>
+#include <map>
 
 int main(int argc, char const *argv[])
 {
@@ -18,41 +19,36 @@ int main(int argc, char const *argv[])
             }
         }
 
-        int defusable[n];
-        for (size_t i = 0; i < n; i++) {
-            defusable[i] = i >= (n / 2);
+        std::multimap<int, int> defusables;
+        for (int i = 0; i < n; i++) {
+            if (i >= n / 2) defusables.insert(std::make_pair(t[i], i));
         }
 
         int num_defused = 0;
         std::vector<int> defused(n, false);
 
         int boom = false, time = 1;
-        while (!boom && !(num_defused == n)) {
-            int choice = -1;
-            int choice_diff = std::numeric_limits<int>::max();
-            for (int i = 0; i < n; i++) {
-                if (defusable[i]) {
-                    int diff = t[i] - time;
-                    if (diff < choice_diff) {
-                        choice = i;
-                        choice_diff = diff;
-                    } else if (diff == choice_diff && diff == 0) {
-                        boom = true;
-                    }
-                }
+        while (!boom && !defusables.empty()) {
+            auto choice = defusables.begin();
+
+            int explosion_time = choice->first;
+            int index = choice->second;
+            if (explosion_time < time) {
+                boom = true;
             }
 
             // defuse the choice
-            defusable[choice] = false;
-            defused[choice] = true;
-            num_defused++;
+            defused[index] = true;
+            defusables.erase(choice);
 
-            // set the parent to defusable
-            int sibling = (choice % 2 == 0)
-                ? choice - 1
-                : choice + 1;
-            int parent = (choice - 1) / 2;
-            if (choice > 0 && defused[sibling]) defusable[parent] = true;
+            // add the parent to defusables
+            int sibling = (index % 2 == 0)
+                ? index - 1
+                : index + 1;
+            int parent = (index - 1) / 2;
+            if (index > 0 && defused[sibling]) {
+                defusables.insert(std::make_pair(t[parent], parent));
+            }
 
             time++;
         }

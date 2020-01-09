@@ -22,7 +22,8 @@ int main(int argc, char const *argv[])
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0)
     {
-        int n, m, p; std::cin >> n >> m >> p;
+        int n, m; std::cin >> n >> m;
+        long p; std::cin >> p;
 
         std::vector<std::pair<Point, info>> jammers;
         for (size_t i = 0; i < n; i++)
@@ -71,9 +72,10 @@ int main(int argc, char const *argv[])
                 Delaunay::Vertex_circulator v = u->incident_vertices();
                 do
                 {
-                    int dist = CGAL::squared_distance(u->point(), v->point());
+                    if (T.is_infinite(v)) continue;
+                    long dist = CGAL::squared_distance(u->point(), v->point());
                     if (dist <= p && !visited[v->info()]) {
-                        Q.push(v->handle());
+                        Q.push(v);
                         visited[v->info()] = true;
                     }
                 } while (++v != u->incident_vertices());
@@ -86,8 +88,10 @@ int main(int argc, char const *argv[])
         }
 
         std::cout << std::endl;
-        
-        
+
+        // first testset, b=p and a=4p
+        std::cout << 4 * p << std::endl;
+        std::cout << p << std::endl;
     }
     
     return 0;

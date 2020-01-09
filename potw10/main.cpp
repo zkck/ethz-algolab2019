@@ -11,6 +11,7 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_vertex_base_with_info_2.h>
+
 #include <vector>
 
 typedef size_t info;
@@ -52,9 +53,9 @@ int main(int argc, char const *argv[])
         //         ====================
 
         graph G(n);
-        for (auto eit = T.finite_edges_begin(); eit != T.finite_edges_end(); eit++) {
-            long dist = T.segment(eit).squared_length();
-            if (dist <= p) {
+        for (auto eit = T.all_edges_begin(); eit != T.all_edges_end(); eit++) {
+            if (T.is_infinite(eit)) continue;
+            if (T.segment(eit).squared_length() <= p) {
                 info v1 = eit->first->vertex(0)->info();
                 info v2 = eit->first->vertex(1)->info();
                 boost::add_edge(v1, v2, G);
@@ -74,8 +75,8 @@ int main(int argc, char const *argv[])
             Delaunay::Vertex_handle src = T.nearest_vertex(s);
             Delaunay::Vertex_handle dst = T.nearest_vertex(t);
 
-            int src_in_range = CGAL::squared_distance(s, src->point()) <= p;
-            int dst_in_range = CGAL::squared_distance(t, dst->point()) <= p;
+            int src_in_range = CGAL::squared_distance(s, src->point()) <= p / 4;
+            int dst_in_range = CGAL::squared_distance(t, dst->point()) <= p / 4;
 
             int same_cc = component_map[src->info()] == component_map[dst->info()];
 

@@ -53,8 +53,7 @@ int main(int argc, char const *argv[])
         //         ====================
 
         graph G(n);
-        for (auto eit = T.all_edges_begin(); eit != T.all_edges_end(); eit++) {
-            if (T.is_infinite(eit)) continue;
+        for (auto eit = T.finite_edges_begin(); eit != T.finite_edges_end(); eit++) {
             if (T.segment(eit).squared_length() <= p) {
                 info v1 = eit->first->vertex(0)->info();
                 info v2 = eit->first->vertex(1)->info();
@@ -84,52 +83,6 @@ int main(int argc, char const *argv[])
                 std::cout << "y";
             else
                 std::cout << "n";
-
-            // // IDEA 1: BFS
-            // //         ===
-
-            // std::vector<int> visited(n, false);
-            // std::queue<Delaunay::Vertex_handle> Q;
-
-            // // source is the nearest vertex to start of mission
-            // Delaunay::Vertex_handle src = T.nearest_vertex(s);
-            // if (CGAL::squared_distance(s, src->point()) <= p / 4)
-            // {
-            //     Q.push(src);
-            //     visited[src->info()] = true;
-            // }
-
-            // // destination is the nearest vertex to end of mission
-            // Delaunay::Vertex_handle dst = T.nearest_vertex(t);
-            // int success = CGAL::squared_distance(t, dst->point()) <= p / 4
-            //     ? -1    // reachable, but have to check with BFS
-            //     :  0;   // unreachable
-
-            // // while BFS is not complete and that the destination has not been found
-            // while (!Q.empty() && success < 0) {
-            //     const Delaunay::Vertex_handle u = Q.front();
-            //     Q.pop();
-
-            //     if (u->info() == dst->info()) {
-            //         success = 1; // reachable
-            //     }
-
-            //     Delaunay::Vertex_circulator v = u->incident_vertices();
-            //     do
-            //     {
-            //         if (T.is_infinite(v)) continue;
-            //         long dist = CGAL::squared_distance(u->point(), v->point());
-            //         if (dist <= p && !visited[v->info()]) {
-            //             Q.push(v);
-            //             visited[v->info()] = true;
-            //         }
-            //     } while (++v != u->incident_vertices());
-            // }
-
-            // if (success == 1)
-            //     std::cout << "y";
-            // else
-            //     std::cout << "n";
         }
 
         std::cout << std::endl;

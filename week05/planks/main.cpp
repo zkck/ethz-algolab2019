@@ -32,6 +32,9 @@ int main(int argc, char const *argv[])
 
         subsets.clear();
 
+        // O(n * 2^n)
+        // this can be improved with split & list
+
         for (size_t subset = 0; subset < 1<<n; subset++) {
             int sum = 0;
             for (size_t i = 0; i < n; ++i)
@@ -40,6 +43,13 @@ int main(int argc, char const *argv[])
             if (sum == total_perimeter / 4)
                 subsets.push_back(subset);
         }
+
+        // among these subsets, we need to find the number of
+        // 4-tuple subsets that are disjoint
+
+
+
+
 
         std::cout << num_subsets(0, 0, 4) << std::endl;
     }

@@ -31,8 +31,6 @@ int main(int argc, char const *argv[])
             jammers.push_back(std::make_pair(Point(x, y), i));
         }
 
-        int p_squared = p * p;
-
         Delaunay T;
         T.insert(jammers.begin(), jammers.end());
 
@@ -58,11 +56,10 @@ int main(int argc, char const *argv[])
             // destination is the nearest vertex to end of mission
             Delaunay::Vertex_handle dst = T.nearest_vertex(t);
             int success = CGAL::squared_distance(t, dst->point()) <= p / 4
-                ? -1    // unknown
+                ? -1    // reachable, but have to check with BFS
                 :  0;   // unreachable
 
-            // std::cout << "BFS starting" << std::endl;
-
+            // while BFS is not complete and that the destination has not been found
             while (!Q.empty() && success < 0) {
                 const Delaunay::Vertex_handle u = Q.front();
                 Q.pop();
@@ -74,22 +71,18 @@ int main(int argc, char const *argv[])
                 Delaunay::Vertex_circulator v = u->incident_vertices();
                 do
                 {
-                    int reachable = CGAL::squared_distance(u->point(), v->point()) <= p / 4;
-                    if (reachable && !visited[v->info()]) {
-                        Q.push(v);
+                    int dist = CGAL::squared_distance(u->point(), v->point());
+                    if (dist <= p && !visited[v->info()]) {
+                        Q.push(v->handle());
                         visited[v->info()] = true;
                     }
                 } while (++v != u->incident_vertices());
             }
 
-            // std::cout << "BFS done" << std::endl;
-
             if (success == 1)
                 std::cout << "y";
             else
                 std::cout << "n";
-
-            std::flush(std::cout);
         }
 
         std::cout << std::endl;

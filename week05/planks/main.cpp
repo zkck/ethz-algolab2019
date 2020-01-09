@@ -2,40 +2,46 @@
 #include <vector>
 #include <algorithm>
 
+std::vector<size_t> subsets;
+
+int num_subsets(size_t together, size_t idx, int num_subs) {
+    if (num_subs == 0) return 1;
+    int result = 0;
+    for (size_t i = idx; i < subsets.size(); i++) {
+        if ((subsets[i] & together) == 0) {
+            result += num_subsets(subsets[i] | together, i + 1, num_subs - 1);
+        }
+    }
+    return result;
+}
+
 int main(int argc, char const *argv[])
 {
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0)
     {
         int n; std::cin >> n;
-        std::vector<int> lengths;
+
+        int l[n];
+
         int total_perimeter = 0;
-        for (size_t i = 0; i < n; i++)
-        {
-            int l; std::cin >> l;
-            lengths.push_back(l);
-            total_perimeter += l;
+        for (size_t i = 0; i < n; i++) {
+            std::cin >> l[i];
+            total_perimeter += l[i];
         }
 
-        std::sort(lengths.begin(), lengths.end());
-        int side_length = total_perimeter / 4;
+        subsets.clear();
 
-        for (size_t i = 0; i < n; i++)
-        {
-            int diff = side_length - lengths[i];
-            for (size_t j = i + 1; j < n; j++)
-            {
-                if (lengths[j] == diff)
-                {
-
-                }
-            }
-
+        for (size_t subset = 0; subset < 1<<n; subset++) {
+            int sum = 0;
+            for (size_t i = 0; i < n; ++i)
+                if (subset & 1<<i)
+                    sum +=l[i];
+            if (sum == total_perimeter / 4)
+                subsets.push_back(subset);
         }
 
-
-
-
+        std::cout << num_subsets(0, 0, 4) << std::endl;
     }
 
     return 0;

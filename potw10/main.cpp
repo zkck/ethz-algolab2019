@@ -63,8 +63,8 @@ int main(int argc, char const *argv[])
         }
 
         std::vector<int> component_map(n);
-        int ncc = boost::connected_components(G, 
-            boost::make_iterator_property_map(component_map.begin(), 
+        int ncc = boost::connected_components(G,
+            boost::make_iterator_property_map(component_map.begin(),
                 boost::get(boost::vertex_index, G)));
 
         for (size_t i = 0; i < m; i++)
@@ -83,14 +83,14 @@ int main(int argc, char const *argv[])
             if (src_in_range && dst_in_range && same_cc)
                 std::cout << "y";
             else
-                std::cout << "n"; 
+                std::cout << "n";
 
             // // IDEA 1: BFS
             // //         ===
 
             // std::vector<int> visited(n, false);
             // std::queue<Delaunay::Vertex_handle> Q;
-            
+
             // // source is the nearest vertex to start of mission
             // Delaunay::Vertex_handle src = T.nearest_vertex(s);
             // if (CGAL::squared_distance(s, src->point()) <= p / 4)
@@ -138,6 +138,6 @@ int main(int argc, char const *argv[])
         std::cout << 4 * p << std::endl;
         std::cout << p << std::endl;
     }
-    
+
     return 0;
 }

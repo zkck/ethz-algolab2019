@@ -52,8 +52,12 @@ int main(int argc, char const *argv[])
         // a - the destination city
         long c, g, b, k, a; std::cin >> c >> g >> b >> k >> a;
 
-        graph G(c + 1);
+        graph G(c);
         edge_adder adder(G);
+
+        auto c_map = boost::get(boost::edge_capacity, G);
+        auto r_map = boost::get(boost::edge_reverse, G);
+        auto rc_map = boost::get(boost::edge_residual_capacity, G);
 
         for (size_t i = 0; i < g; i++)
         {
@@ -62,50 +66,32 @@ int main(int argc, char const *argv[])
             //   - is willing to send them with one suitcase from x to y
             //   - at the cost of d per elephant
             long x, y, d, e; std::cin >> x >> y >> d >> e;
-
-            adder.add_edge(x + 1, y + 1, e, d);
+            adder.add_edge(x, y, e, d);
         }
 
         // what is the maximum number of suitcases he can send
         // without exceeding his budget
 
-        int flow = boost::push_relabel_max_flow(G, k + 1, a + 1);
-        boost::cycle_canceling(G);
-        int cost = boost::find_flow_cost(G);
+        int upper = 11, lower = 0;
 
-        if (cost <= b)
-            std::cout << flow << std::endl;
-        else
-        {
-            auto c_map = boost::get(boost::edge_capacity, G);
-            edge_desc e = adder.add_edge(0, k + 1, 0, 0);
+        int new_a = boost::add_vertex(G);
+        edge_desc e = adder.add_edge(a, new_a, 1, 0);
 
-            // binary search for the best
+        while (upper - lower > 1) {
+            int threshold =  (upper + lower) / 2;
+            c_map[e] = threshold;
+            
+            boost::successive_shortest_path_nonnegative_weights(G, k, new_a);
+            int cost = boost::find_flow_cost(G);
 
-            int lower = 0, upper = 2;
-
-            // std::cout << "binary search..." << std::endl;
-
-            while (upper - lower > 1)
-            {
-                // std::cout << "  lower=" << lower << " upper=" << upper << std::endl;
-                int capacity = (lower + upper) / 2;
-                c_map[e] = capacity;
-
-                int fuck = boost::push_relabel_max_flow(G, 0, a + 1);
-                // if (fuck > capacity)
-                //     std::cout << "What the fuck" << std::endl;
-
-                boost::cycle_canceling(G);
-                if (boost::find_flow_cost(G) > b)
-                    upper = fuck;
-                else
-                    lower = fuck;
+            if (cost > b) {
+                upper = threshold;
+            } else {
+                lower = threshold;
             }
-
-            std::cout << lower << std::endl;
-
         }
+
+        std::cout << boost::push_relabel_max_flow(G, k, new_a) << std::endl;
     }
 
     return 0;

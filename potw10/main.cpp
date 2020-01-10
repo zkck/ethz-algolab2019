@@ -63,6 +63,15 @@ int main(int argc, char const *argv[])
             } while (++uit != T.incident_vertices(vit));
         }
 
+        // for (auto eit = T.all_edges_begin(); eit != T.all_edges_end(); eit++) {
+        //     Delaunay::Face_handle f = eit->first;
+        //     int i = eit->second;
+        //     Delaunay::Vertex_handle vs = f->vertex(f->cw(i));
+        //     Delaunay::Vertex_handle vt = f->vertex(f->ccw(i));
+        //     boost::add_edge(vs->info(), vt->info(), G);
+        // }
+
+
         std::vector<int> component_map(n);
         int ncc = boost::connected_components(G,
             boost::make_iterator_property_map(component_map.begin(),

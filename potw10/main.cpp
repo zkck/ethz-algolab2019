@@ -183,8 +183,8 @@ int main(int argc, char const *argv[])
             Delaunay::Vertex_handle dst = T.nearest_vertex(t);
             long dist_to_src = CGAL::squared_distance(s, src->point());
             long dist_to_dst = CGAL::squared_distance(t, dst->point());
-            b = std::max(a, dist_to_src * 4);
-            b = std::max(a, dist_to_dst * 4);
+            a = std::max(a, dist_to_src * 4);
+            a = std::max(a, dist_to_dst * 4);
 
             // loop variables
             size_t u, v;
@@ -194,7 +194,7 @@ int main(int argc, char const *argv[])
                 std::tie(u, v) = eit->second;
                 boost::add_edge(u, v, graph);
                 ds.union_set(u, v);
-                b = std::max(a, dist);
+                a = std::max(a, dist);
                 eit++;
             }
 

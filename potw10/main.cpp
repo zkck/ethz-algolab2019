@@ -53,12 +53,14 @@ int main(int argc, char const *argv[])
         //         ====================
 
         graph G(n);
-        for (auto eit = T.finite_edges_begin(); eit != T.finite_edges_end(); eit++) {
-            if (T.segment(eit).squared_length() <= p) {
-                info v1 = eit->first->vertex(0)->info();
-                info v2 = eit->first->vertex(1)->info();
-                boost::add_edge(v1, v2, G);
-            }
+        for (auto vit = T.finite_vertices_begin(); vit != T.finite_vertices_end(); vit++) {
+            Delaunay::Vertex_circulator uit = T.incident_vertices(vit);
+            do {
+                if (T.is_infinite(uit)) continue;
+                long dist = CGAL::squared_distance(uit->point(), vit->point());
+                if (dist <= p)
+                    boost::add_edge(uit->info(), vit->info(), G);
+            } while (++uit != T.incident_vertices(vit));
         }
 
         std::vector<int> component_map(n);

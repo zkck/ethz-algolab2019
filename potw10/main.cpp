@@ -202,7 +202,7 @@ int main(int argc, char const *argv[])
 
 
         // first testset, b=p and a=4p
-        std::cout << 4 * p << std::endl;
+        std::cout << a << std::endl;
         std::cout << b << std::endl;
     }
 

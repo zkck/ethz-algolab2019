@@ -4,8 +4,7 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/connected_components.hpp>
 
-// BFS
-#include <queue>
+#include <map>
 
 // From CGAL docs
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -52,14 +51,20 @@ int main(int argc, char const *argv[])
         // IDEA 2: CONNECTED COMPONENTS
         //         ====================
 
+        // ordered set of the edges
+        std::multimap<long, std::pair<info, info>> edges;
+
         graph G(n);
         for (auto vit = T.finite_vertices_begin(); vit != T.finite_vertices_end(); vit++) {
             Delaunay::Vertex_circulator uit = T.incident_vertices(vit);
             do {
                 if (T.is_infinite(uit)) continue;
                 long dist = CGAL::squared_distance(uit->point(), vit->point());
-                if (dist <= p)
-                    boost::add_edge(uit->info(), vit->info(), G);
+                info u = uit->info(), v = vit->info();
+                edges.insert(std::make_pair(dist, std::make_pair(u, v))); // TODO: double
+                if (dist <= p) {
+                    boost::add_edge(u, v, G);
+                }
             } while (++uit != T.incident_vertices(vit));
         }
 
@@ -71,16 +76,19 @@ int main(int argc, char const *argv[])
         //     boost::add_edge(vs->info(), vt->info(), G);
         // }
 
-
         std::vector<int> component_map(n);
         int ncc = boost::connected_components(G,
             boost::make_iterator_property_map(component_map.begin(),
                 boost::get(boost::vertex_index, G)));
 
+        std::vector<std::pair<Point, Point>> missions;
+
         for (size_t i = 0; i < m; i++)
         {
             int x0, y0, x1, y1; std::cin >> x0 >> y0 >> x1 >> y1;
             Point s(x0, y0), t(x1, y1);
+
+            missions.push_back(std::make_pair(s, t));
 
             Delaunay::Vertex_handle src = T.nearest_vertex(s);
             Delaunay::Vertex_handle dst = T.nearest_vertex(t);
@@ -98,8 +106,50 @@ int main(int argc, char const *argv[])
 
         std::cout << std::endl;
 
+        G.clear();
+        for (size_t i = 0; i < n; ++i) boost::add_vertex(G);
+        boost::connected_components(G,
+            boost::make_iterator_property_map(component_map.begin(),
+                boost::get(boost::vertex_index, G)));
+
+        long a = 0;
+
+        auto edge = edges.begin();
+
+        for (auto m : missions)
+        {
+            Point s = m.first;
+            Point t = m.second;
+
+            Delaunay::Vertex_handle src = T.nearest_vertex(s);
+            Delaunay::Vertex_handle dst = T.nearest_vertex(t);
+
+            long src_dist = CGAL::squared_distance(s, src->point());
+            long dst_dist = CGAL::squared_distance(t, dst->point());
+
+            a = std::max(a, src_dist * 4);
+            a = std::max(a, dst_dist * 4);
+
+            info u, v;
+            while (component_map[src->info()] != component_map[dst->info()]) {
+                long dist = edge->first;
+                std::tie(u, v) = edge->second;
+                boost::add_edge(u, v, G);
+
+                // call connected components again
+                boost::connected_components(G,
+                    boost::make_iterator_property_map(component_map.begin(),
+                        boost::get(boost::vertex_index, G)));
+
+                a = std::max(a, dist);
+                edge++;
+            }
+        }
+
+
+
         // first testset, b=p and a=4p
-        std::cout << 4 * p << std::endl;
+        std::cout << a << std::endl;
         std::cout << p << std::endl;
     }
 

@@ -4,6 +4,12 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/connected_components.hpp>
 
+// BGL incremental connected components
+#include <boost/foreach.hpp>
+#include <boost/graph/graph_utility.hpp>
+#include <boost/graph/incremental_components.hpp>
+#include <boost/pending/disjoint_sets.hpp>
+
 #include <map>
 
 // From CGAL docs
@@ -30,6 +36,14 @@ typedef boost::adjacency_list<
 typedef boost::graph_traits<graph>::vertex_descriptor           vertex_desc;
 typedef boost::graph_traits<graph>::edge_iterator               edge_it;
 
+typedef boost::graph_traits<graph>::vertex_descriptor  Vertex;
+typedef boost::graph_traits<graph>::vertices_size_type VertexIndex;
+
+typedef VertexIndex* Rank;
+typedef Vertex* Parent;
+
+
+
 int main(int argc, char const *argv[])
 {
     int num_tests; std::cin >> num_tests;
@@ -48,11 +62,16 @@ int main(int argc, char const *argv[])
         Delaunay T;
         T.insert(jammers.begin(), jammers.end());
 
-        // IDEA 2: CONNECTED COMPONENTS
-        //         ====================
+        // CONNECTED COMPONENTS
+        // ====================
 
         // ordered set of the edges
         std::multimap<long, std::pair<info, info>> edges;
+
+        // STEP 1
+        //
+        // Build a graph modeling the triangulation, with edges only when there is an overlap
+        // in the jammers radius
 
         graph G(n);
         for (auto vit = T.finite_vertices_begin(); vit != T.finite_vertices_end(); vit++) {
@@ -68,20 +87,24 @@ int main(int argc, char const *argv[])
             } while (++uit != T.incident_vertices(vit));
         }
 
-        // for (auto eit = T.all_edges_begin(); eit != T.all_edges_end(); eit++) {
-        //     Delaunay::Face_handle f = eit->first;
-        //     int i = eit->second;
-        //     Delaunay::Vertex_handle vs = f->vertex(f->cw(i));
-        //     Delaunay::Vertex_handle vt = f->vertex(f->ccw(i));
-        //     boost::add_edge(vs->info(), vt->info(), G);
-        // }
+        // STEP 2
+        //
+        // Run connected components
 
         std::vector<int> component_map(n);
         int ncc = boost::connected_components(G,
             boost::make_iterator_property_map(component_map.begin(),
                 boost::get(boost::vertex_index, G)));
 
+        // STEP 3
+        //
+        // For each mission, check if the closest jammers to start/finish are in the same
+        // connected component
+
         std::vector<std::pair<Point, Point>> missions;
+
+        // keep track of succeeded/failed missions for later
+        std::vector<size_t> succeeded, failed;
 
         for (size_t i = 0; i < m; i++)
         {
@@ -98,59 +121,89 @@ int main(int argc, char const *argv[])
 
             int same_cc = component_map[src->info()] == component_map[dst->info()];
 
-            if (src_in_range && dst_in_range && same_cc)
+            if (src_in_range && dst_in_range && same_cc) {
                 std::cout << "y";
-            else
+                succeeded.push_back(i);
+            } else {
                 std::cout << "n";
+                failed.push_back(i);
+            }
         }
 
         std::cout << std::endl;
 
-        G.clear();
-        for (size_t i = 0; i < n; ++i) boost::add_vertex(G);
-        boost::connected_components(G,
-            boost::make_iterator_property_map(component_map.begin(),
-                boost::get(boost::vertex_index, G)));
+        // INCREMENTAL CONNECTED COMPONENTS
+        // ================================
 
-        long a = 0;
+        graph graph(n);
 
-        auto edge = edges.begin();
+        std::vector<VertexIndex> rank(num_vertices(graph));
+        std::vector<Vertex> parent(num_vertices(graph));
 
-        for (auto m : missions)
+        boost::disjoint_sets<Rank, Parent> ds(&rank[0], &parent[0]);
+
+        boost::initialize_incremental_components(graph, ds);
+        boost::incremental_components(graph, ds);
+
+        // loop variables
+        Point s, t;
+        auto eit = edges.begin();
+
+        long b = 0;
+
+        for (size_t i : succeeded)
         {
-            Point s = m.first;
-            Point t = m.second;
-
+            std::tie(s, t) = missions[i];
             Delaunay::Vertex_handle src = T.nearest_vertex(s);
             Delaunay::Vertex_handle dst = T.nearest_vertex(t);
+            long dist_to_src = CGAL::squared_distance(s, src->point());
+            long dist_to_dst = CGAL::squared_distance(t, dst->point());
+            b = std::max(b, dist_to_src * 4);
+            b = std::max(b, dist_to_dst * 4);
 
-            long src_dist = CGAL::squared_distance(s, src->point());
-            long dst_dist = CGAL::squared_distance(t, dst->point());
-
-            a = std::max(a, src_dist * 4);
-            a = std::max(a, dst_dist * 4);
-
-            info u, v;
-            while (component_map[src->info()] != component_map[dst->info()]) {
-                long dist = edge->first;
-                std::tie(u, v) = edge->second;
-                boost::add_edge(u, v, G);
-
-                // call connected components again
-                boost::connected_components(G,
-                    boost::make_iterator_property_map(component_map.begin(),
-                        boost::get(boost::vertex_index, G)));
-
-                a = std::max(a, dist);
-                edge++;
+            // loop variables
+            size_t u, v;
+            while (ds.find_set(src->info()) != ds.find_set(dst->info())) {
+                long dist = eit->first;
+                std::tie(u, v) = eit->second;
+                boost::add_edge(u, v, graph);
+                ds.union_set(u, v);
+                b = std::max(b, dist);
+                eit++;
             }
+
+        }
+
+        long a = b;
+
+        for (size_t i : failed)
+        {
+            std::tie(s, t) = missions[i];
+            Delaunay::Vertex_handle src = T.nearest_vertex(s);
+            Delaunay::Vertex_handle dst = T.nearest_vertex(t);
+            long dist_to_src = CGAL::squared_distance(s, src->point());
+            long dist_to_dst = CGAL::squared_distance(t, dst->point());
+            b = std::max(a, dist_to_src * 4);
+            b = std::max(a, dist_to_dst * 4);
+
+            // loop variables
+            size_t u, v;
+
+            while (ds.find_set(src->info()) != ds.find_set(dst->info())) {
+                long dist = eit->first;
+                std::tie(u, v) = eit->second;
+                boost::add_edge(u, v, graph);
+                ds.union_set(u, v);
+                b = std::max(a, dist);
+                eit++;
+            }
+
         }
 
 
-
         // first testset, b=p and a=4p
-        std::cout << a << std::endl;
-        std::cout << p << std::endl;
+        std::cout << 4 * p << std::endl;
+        std::cout << b << std::endl;
     }
 
     return 0;

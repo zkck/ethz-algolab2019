@@ -1,87 +1,147 @@
 #include <iostream>
+#include <limits>
+#include <vector>
+#include <map>
 
-// BGL include
-#include <boost/graph/adjacency_list.hpp>
+std::vector<std::pair<int, int>> jedi;
 
-// BGL flow include *NEW*
-#include <boost/graph/push_relabel_max_flow.hpp>
+int m;
 
-// Graph Type with nested interior edge properties for flow algorithms
-typedef boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS> traits;
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost::no_property,
-    boost::property<boost::edge_capacity_t, long,
-        boost::property<boost::edge_residual_capacity_t, long,
-            boost::property<boost::edge_reverse_t, traits::edge_descriptor>>>> graph;
+int num_jedi_reverse(int start, int end) {
+    // assuming end < start
+    int count = 0;
 
-typedef traits::vertex_descriptor vertex_desc;
-typedef traits::edge_descriptor edge_desc;
+    int pointer = start;
 
-// Custom edge adder class, highly recommended
-class edge_adder {
-  graph &G;
+    int jedi_available = true;
 
- public:
-  explicit edge_adder(graph &G) : G(G) {}
+    while (jedi_available) {
+        jedi_available = false;
+        int earliest_finish_time = end;
 
-  void add_edge(int from, int to, long capacity) {
-    auto c_map = boost::get(boost::edge_capacity, G);
-    auto r_map = boost::get(boost::edge_reverse, G);
-    const auto e = boost::add_edge(from, to, G).first;
-    const auto rev_e = boost::add_edge(to, from, G).first;
-    c_map[e] = capacity;
-    c_map[rev_e] = 0; // reverse edge has no capacity!
-    r_map[e] = rev_e;
-    r_map[rev_e] = e;
-  }
-};
+        // find jedi with earliest finish time
+        for (auto j : jedi) {
+            int a, b; std::tie(a, b) = j;
+            if (a > b) {
+                // covers segment a to b
+                if (a > pointer && b < end) {
+                    jedi_available = true;
+                    earliest_finish_time = std::min(earliest_finish_time, b);
+                }
+            } else {
+                if (a > pointer) {
+                    jedi_available = true;
+                    earliest_finish_time = std::min(earliest_finish_time, b - m);
+                } else if (b < end) {
+                    jedi_available = true;
+                    earliest_finish_time = std::min(earliest_finish_time, b);
+                }
+            }
+        }
 
+        if (jedi_available) {
+            pointer = earliest_finish_time <= 0
+                ? earliest_finish_time + m
+                : earliest_finish_time;
+            count++;
+        }
+    }
+
+    return count;
+}
+
+int num_jedi(int start, int end) {
+    // assuming start < end
+    int count = 0;
+
+    int pointer = start;
+
+    int jedi_available = true;
+
+    while (jedi_available) {
+        jedi_available = false;
+        int earliest_finish_time = end;
+
+        // find jedi with earliest finish time
+        for (auto j : jedi) {
+            int a, b; std::tie(a, b) = j;
+            if (a <= b) {
+                // covers segment a to b
+                if (a > pointer && b < end) {
+                    jedi_available = true;
+                    earliest_finish_time = std::min(earliest_finish_time, b);
+                }
+            } else {
+                // this overlaps anyway because of the precondition
+            }
+        }
+
+        if (jedi_available) {
+            pointer = earliest_finish_time;
+            count++;
+        }
+    }
+
+    return count;
+
+}
 
 int main(int argc, char const *argv[])
 {
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0) {
-        int n, m; std::cin >> n >> m;
+        int n; std::cin >> n >> m;
 
-        // build graph
-        graph G(n + m + 2);
-        edge_adder adder(G);
-
-        // source and sink
-        int source = 0;
-        int sink = n + m + 1;
-
-        for (int jedi = 1; jedi <= n; ++jedi) {
-
-            // add power of 1 to the jedi (they can only protect one edge)
-            adder.add_edge(source, jedi, 1);
-
+        jedi.clear();
+        for (size_t i = 0; i < n; i++)
+        {
             int a, b; std::cin >> a >> b;
+            jedi.push_back(std::make_pair(a, b));
+        }
 
-            std::cout << a << " " << b;
+        //
+        int best_m = -1;
+        int best_count = std::numeric_limits<int>::max();
 
-            if (a <= b) {
-                while (a <= b) {
-                    adder.add_edge(jedi, n + a, 1);
-                    std::cout << "jedi=" << jedi << " segment=" << n + a << std::endl;
-                    ++a;
+        std::vector<size_t> starting_jedi;
+
+        for (size_t i = 1; i <= m; i++)
+        {
+            std::vector<size_t> maybe_starting_jedi;
+            int count = 0;
+            for (size_t idx = 0; idx < n; idx++) {
+                int a, b; std::tie(a, b) = jedi[idx];
+                if (a <= b) {
+                    if (a <= i && i <= b) {
+                        maybe_starting_jedi.push_back(i);
+                        count++;
+                    }
+                } else {
+                    if (a <= i || i <= b) {
+                        maybe_starting_jedi.push_back(i);
+                        count++;
+                    }
                 }
-            } else {
-                for (int a1 = a; a1 <= m; ++a1) {
-                    adder.add_edge(jedi, n + a1, 1);
-                    std::cout << "jedi=" << jedi << " segment=" << n + a1 << std::endl;
-                }
-                for (int a2 = 1; a2 <= b; ++a2) {
-                    adder.add_edge(jedi, n + a2, 1);
-                    std::cout << "jedi=" << jedi << " segment=" << n + a2 << std::endl;
-                }
+            }
+            if (count < best_count) {
+                best_count = count;
+                best_m = i;
+                starting_jedi = maybe_starting_jedi;
             }
         }
 
-        for (int segment = 1; segment <= m; ++segment) {
-            adder.add_edge(n + segment, sink, 1);
+        int highest_jedi_count = -1;
+
+        for (size_t s_idx : starting_jedi) {
+            int a, b; std::tie(a, b) = jedi[s_idx];
+            if (a > b)
+                highest_jedi_count = std::max(highest_jedi_count, num_jedi(b, a));
+            else
+                highest_jedi_count = std::max(highest_jedi_count, num_jedi_reverse(b, a));
         }
 
-        std::cout << boost::push_relabel_max_flow(G, source, sink) << std::endl;
+        std::cout << std::max(highest_jedi_count, num_jedi(-1, m + 1)) << std::endl;
+
     }
     return 0;
 }

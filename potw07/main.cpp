@@ -1,170 +1,107 @@
 #include <iostream>
-#include <limits>
 #include <vector>
+#include <algorithm>
 #include <map>
+#include <random>
+#include <limits>
+
 
 std::vector<std::pair<int, int>> jedi;
-
 int m;
 
-int num_jedi_reverse(int start, int end) {
-    // assuming end < start
+std::vector<std::vector<size_t>> conflicts;
+
+int interval_scheduling(int separation_point) {
+    int expanded = true;
     int count = 0;
-
-    int pointer = start;
-
-    int jedi_available = true;
-
-    int passed = false;
-
-    while (jedi_available) {
-        jedi_available = false;
+    int pointer = separation_point;
+    while (expanded) {
+        expanded = false;
+        int a, b;
         int earliest_finish_time = std::numeric_limits<int>::max();
+        for (auto &j : jedi) {
+            std::tie(a, b) = j;
+            if (a > pointer) {
+                expanded = true;
+                earliest_finish_time = std::min(earliest_finish_time, b);
+            } else if (b < separation_point) {
+                expanded = true;
+                earliest_finish_time = std::min(earliest_finish_time, b + m);
+            }
 
-        // find jedi with earliest finish time
-        for (auto j : jedi) {
-            int a, b; std::tie(a, b) = j;
-            if (passed)
-                if (a > b) {
-                    // covers segment a to b
-                    if (a > pointer && b < end) {
-                        // std::cout << "    new starting time with a=" << a << " b=" << b << std::endl;
-                        jedi_available = true;
-                        earliest_finish_time = std::min(earliest_finish_time, b);
-                    }
-                } else {
-                    // a <= b
-                    if (a > pointer) {
-                        // std::cout << "    that new starting time with a=" << a << " b=" << b << std::endl;
-                        jedi_available = true;
-                        earliest_finish_time = std::min(earliest_finish_time, b - m);
-                    } else if (b < end) {
-                        // std::cout << "    this new starting time with a=" << a << " b=" << b << std::endl;
-                        jedi_available = true;
-                        earliest_finish_time = std::min(earliest_finish_time, b);
-                    }
-            }
-            else
-            if (a <= b) {
-                if (a > pointer && b < end) {
-                    jedi_available = true;
-                    earliest_finish_time = std::min(earliest_finish_time, b);
-                }
-            }
         }
-
-        if (jedi_available) {
-            int new_pointer = earliest_finish_time <= 0
-                ? earliest_finish_time + m
-                : earliest_finish_time;
-            // std::cout << "    pointer " << pointer << " -> " << new_pointer << std::endl;
-            if (new_pointer < pointer) passed = true;
-            pointer = new_pointer;
+        if (expanded) {
             count++;
-        }
-
-    }
-
-    return count;
-}
-
-int num_jedi(int start, int end) {
-    // assuming start < end
-    int count = 0;
-
-    int pointer = start;
-
-    int jedi_available = true;
-
-    while (jedi_available) {
-        jedi_available = false;
-        int earliest_finish_time = std::numeric_limits<int>::max();
-
-        // find jedi with earliest finish time
-        for (auto j : jedi) {
-            int a, b; std::tie(a, b) = j;
-            if (a <= b) {
-                // covers segment a to b
-                if (a > pointer && b < end) {
-                    jedi_available = true;
-                    earliest_finish_time = std::min(earliest_finish_time, b);
-                }
-            } else {
-                // this overlaps anyway because of the precondition
-            }
-        }
-
-        if (jedi_available) {
+            std::cout << "  sep_point=" << separation_point << " pointer " << pointer << " -> " << earliest_finish_time << std::endl;
             pointer = earliest_finish_time;
-            count++;
         }
     }
-
-    // std::cout << "  num_jedi(" << start << ", " << end << ") = " << count << std::endl;
-
     return count;
-
 }
 
 int main(int argc, char const *argv[])
 {
     int num_tests; std::cin >> num_tests;
-    while (num_tests-- > 0) {
+    while (num_tests-- > 0)
+    {
         int n; std::cin >> n >> m;
-
-        // std::cout << "n=" << n << " m=" << m << std::endl;
 
         jedi.clear();
         for (size_t i = 0; i < n; i++)
         {
             int a, b; std::cin >> a >> b;
-            jedi.push_back(std::make_pair(a, b));
-        }
-
-        //
-        int best_m = -1;
-        int best_count = std::numeric_limits<int>::max();
-
-        std::vector<size_t> starting_jedi;
-
-
-        for (size_t i = 1; i <= m; i++)
-        {
-            std::vector<size_t> maybe_starting_jedi;
-            int count = 0;
-            for (size_t idx = 0; idx < n; idx++) {
-                int a, b; std::tie(a, b) = jedi[idx];
-                if (a <= b) {
-                    if (a <= i && i <= b) {
-                        maybe_starting_jedi.push_back(idx);
-                        count++;
-                    }
-                } else {
-                    if (a <= i || i <= b) {
-                        maybe_starting_jedi.push_back(idx);
-                    }
-                }
-            }
-            if (count < best_count) {
-                best_count = count;
-                best_m = i;
-                starting_jedi = maybe_starting_jedi;
-            }
-        }
-
-        int highest_jedi_count = -1;
-
-        for (size_t s_idx : starting_jedi) {
-            int a, b; std::tie(a, b) = jedi[s_idx];
-            // std::cout << "  " << a << " " << b << std::endl;
-            if (a > b)
-                highest_jedi_count = std::max(highest_jedi_count, 1 + num_jedi(b, a));
+            if (a <= b)
+                jedi.push_back(std::make_pair(a, b));
             else
-                highest_jedi_count = std::max(highest_jedi_count, 1 + num_jedi_reverse(b, a));
+                jedi.push_back(std::make_pair(a, b + m));
         }
 
-        std::cout << std::max(highest_jedi_count, num_jedi_reverse(best_m - 1, best_m)) << std::endl;
+        std::cout << "n=" << n << " m=" << m << std::endl;
+
+        // // FIRST PHASE
+        // //
+        // // Build conflict map
+
+        // int a1, b1, a2, b2;
+        // for (size_t i = 0; i < n; i++) {
+        //     std::tie(a1, b1) = jedi[i];
+        //     std::vector<size_t> cs;
+        //     for (size_t j = 0; j < n; j++) {
+        //         if (j == i) continue;
+        //         std::tie(a2, b2) = jedi[j];
+        //         if (b1 > m) {
+        //             if (a2 + m <= b1 || b2 >= a1) {
+        //                 cs.push_back(j);
+        //             }
+        //         } else {
+        //             if (b1 >= a2 && b2 >= a1 || b2 >= a1 + m) {
+        //                 cs.push_back(j);
+        //             }
+        //         }
+        //     }
+        // }
+
+        // SECOND PHASE
+        //
+        // Check if we can use an uncovered segment, in which case it resembles a simple
+        // interval scheduling problem
+
+        std::sort(jedi.begin(), jedi.end());
+        int cover_start, cover_end; std::tie(cover_start, cover_end) = jedi[0];
+        for (auto &j : jedi) {
+            int a, b; std::tie(a, b) = j;
+            if (a - cover_end > 1) break;
+            cover_end = std::max(cover_end, b);
+        }
+
+        int separation_point = -1;
+        if (cover_start + m - cover_end > 1) separation_point = (cover_end + 1) % m;
+
+        std::cout << separation_point << std::endl;
+
+
 
     }
+
     return 0;
 }

@@ -46,7 +46,9 @@ void algo(int n)
             do
             {
                 if (tri.is_infinite(v)) continue;
-                dt = std::min(dt, CGAL::squared_distance(u->point(), v->point()) / 4); // why
+                // for the equivalent of a division of the distance by 2, we need to divide
+                // the squared distance by 4
+                dt = std::min(dt, CGAL::squared_distance(u->point(), v->point()) / 4);
             } while (++v != tri.incident_vertices(u));
 
         death_times.push_back(dt);

@@ -15,6 +15,8 @@ int num_jedi_reverse(int start, int end) {
 
     int jedi_available = true;
 
+    int passed = false;
+
     while (jedi_available) {
         jedi_available = false;
         int earliest_finish_time = std::numeric_limits<int>::max();
@@ -22,7 +24,7 @@ int num_jedi_reverse(int start, int end) {
         // find jedi with earliest finish time
         for (auto j : jedi) {
             int a, b; std::tie(a, b) = j;
-            if (pointer >= start)
+            if (passed)
                 if (a > b) {
                     // covers segment a to b
                     if (a > pointer && b < end) {
@@ -56,6 +58,7 @@ int num_jedi_reverse(int start, int end) {
                 ? earliest_finish_time + m
                 : earliest_finish_time;
             // std::cout << "    pointer " << pointer << " -> " << new_pointer << std::endl;
+            if (new_pointer < pointer) passed = true;
             pointer = new_pointer;
             count++;
         }
@@ -124,6 +127,7 @@ int main(int argc, char const *argv[])
 
         std::vector<size_t> starting_jedi;
 
+
         for (size_t i = 1; i <= m; i++)
         {
             std::vector<size_t> maybe_starting_jedi;
@@ -159,7 +163,7 @@ int main(int argc, char const *argv[])
                 highest_jedi_count = std::max(highest_jedi_count, 1 + num_jedi_reverse(b, a));
         }
 
-        std::cout << std::max(highest_jedi_count, num_jedi(0, m + 1)) << std::endl;
+        std::cout << std::max(highest_jedi_count, num_jedi_reverse(best_m - 1, best_m)) << std::endl;
 
     }
     return 0;

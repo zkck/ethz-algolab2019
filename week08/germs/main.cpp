@@ -2,30 +2,15 @@
 #include <limits>
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-#include <CGAL/Exact_predicates_exact_constructions_kernel_with_sqrt.h>
 #include <CGAL/Delaunay_triangulation_2.h>
 
-typedef CGAL::Exact_predicates_exact_constructions_kernel_with_sqrt IK;
-typedef CGAL::Exact_predicates_exact_constructions_kernel_with_sqrt EK;
+typedef CGAL::Exact_predicates_inexact_constructions_kernel IK;
 typedef CGAL::Delaunay_triangulation_2<IK>  Triangulation;
 
 typedef Triangulation::Edge_iterator    Edge_iterator;
 typedef Triangulation::Vertex_iterator  Vertex_iterator;
 
-int to_ceil(EK::FT n) {
-    int res = std::ceil(CGAL::to_double(n));
-    while (res < n)      res++;
-    while (res - 1 >= n) res--;
-    return res;
-}
-
-int to_dist(IK::FT sq_dist)
-{
-    EK::FT fuck = CGAL::sqrt(sq_dist);
-    EK::FT thss = fuck / 2 - 0.5;
-    EK::FT shit = CGAL::sqrt(fuck / 2.0 - 0.5);
-    return to_ceil(shit);
-}
+int to_dist(double dt) { return std::ceil(std::sqrt(std::sqrt(dt) - 0.5)); }
 
 void algo(int n)
 {
@@ -39,50 +24,45 @@ void algo(int n)
     for (size_t i = 0; i < n; i++)
     {
         int x, y; std::cin >> x >> y;
-        pts.push_back(IK::Point_2(x - l, y - b));
+        pts.push_back(IK::Point_2(x, y));
     }
 
     Triangulation tri;
     tri.insert(pts.begin(), pts.end());
 
     // death times for each vertex
-    std::vector<IK::FT> death_times;
+    std::vector<double> death_times;
 
-    for (Vertex_iterator v = tri.finite_vertices_begin(); v != tri.finite_vertices_end(); ++v)
+    for (Vertex_iterator u = tri.finite_vertices_begin(); u != tri.finite_vertices_end(); ++u)
     {
-        IK::FT v_min_x = v->point().x();
-        v_min_x = (width < 2 * v_min_x) ? width - v_min_x : v_min_x;
+        double dt = std::numeric_limits<double>::infinity();
+        dt = std::min(dt, CGAL::squared_distance(u->point(), IK::Point_2(l, u->point().y())));
+        dt = std::min(dt, CGAL::squared_distance(u->point(), IK::Point_2(r, u->point().y())));
+        dt = std::min(dt, CGAL::squared_distance(u->point(), IK::Point_2(u->point().x(), b)));
+        dt = std::min(dt, CGAL::squared_distance(u->point(), IK::Point_2(u->point().x(), t)));
 
-        IK::FT v_min_y = v->point().y();
-        v_min_y = (height < 2 * v_min_y) ? height - v_min_y : v_min_y;
-
-        IK::FT v_min = v_min_y < v_min_x ? v_min_y : v_min_x;
-        IK::FT death = v_min * v_min * 2;
-
-        Triangulation::Edge_circulator c = tri.incident_edges(v);
-
-        if (c != 0)
+        Triangulation::Vertex_circulator v = tri.incident_vertices(u);
+        if (v != 0)
             do
             {
-                if (tri.is_infinite(c)) continue;
-                IK::FT length = tri.segment(c).squared_length();
-                if (length < death) death = length;
-            } while (++c != tri.incident_edges(v));
+                if (tri.is_infinite(v)) continue;
+                dt = std::min(dt, CGAL::squared_distance(u->point(), v->point()) / 4); // why
+            } while (++v != tri.incident_vertices(u));
 
-        death_times.push_back(death);
+        death_times.push_back(dt);
     }
+
+    if (death_times.size() != n) std::cout << "not equal" << std::endl;
 
     std::sort(death_times.begin(), death_times.end());
 
-    IK::FT half = death_times[n / 2];
-    IK::FT min  = death_times[0];
-    IK::FT max  = death_times[n - 1];
+    double half = death_times[n / 2];
+    double min  = death_times[0];
+    double max  = death_times[n - 1];
 
     printf("%d %d %d\n", to_dist(min), to_dist(half), to_dist(max));
-
-
-
 }
+
 int main(int argc, char const *argv[])
 {
     int n;

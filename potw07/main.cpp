@@ -12,28 +12,47 @@ int m;
 std::vector<std::vector<size_t>> conflicts;
 
 int interval_scheduling(int separation_point) {
-    int expanded = true;
+    int a, b;
+
+    std::vector<std::pair<int, int>> adapted_jedi;
+
+    for (auto &j : jedi) {
+        std::tie(a, b) = j;
+
+        // two possible cases:
+        //   - separation_point < a && a <= m
+        //   - 0 < a && a < separation_point
+        if (separation_point < a && a <= m) {
+            // can be considered as is
+            adapted_jedi.push_back(std::make_pair(a, b));
+        } else if (0 < a && a < separation_point) {
+            // has to be shifted
+            adapted_jedi.push_back(std::make_pair(a + m, b + m));
+        } else {
+            throw std::runtime_error("invalid jedi");
+        }
+    }
+
+    // for (auto &j : adapted_jedi) printf("  %d, %d\n", j.first, j.second);
+
     int count = 0;
+    int expanded = true;
     int pointer = separation_point;
     while (expanded) {
         expanded = false;
-        int a, b;
-        int earliest_finish_time = std::numeric_limits<int>::max();
-        for (auto &j : jedi) {
+        int earliest_ft = std::numeric_limits<int>::max();
+        for (auto &j : adapted_jedi) {
             std::tie(a, b) = j;
             if (a > pointer) {
                 expanded = true;
-                earliest_finish_time = std::min(earliest_finish_time, b);
-            } else if (b < separation_point) {
-                expanded = true;
-                earliest_finish_time = std::min(earliest_finish_time, b + m);
+                earliest_ft = std::min(earliest_ft, b);
+                // printf("    compatible, ft is %d\n", earliest_ft);
             }
-
         }
         if (expanded) {
             count++;
-            std::cout << "  sep_point=" << separation_point << " pointer " << pointer << " -> " << earliest_finish_time << std::endl;
-            pointer = earliest_finish_time;
+            // printf("  pointer %d -> %d\n", pointer, earliest_ft);
+            pointer = earliest_ft;
         }
     }
     return count;
@@ -47,8 +66,7 @@ int main(int argc, char const *argv[])
         int n; std::cin >> n >> m;
 
         jedi.clear();
-        for (size_t i = 0; i < n; i++)
-        {
+        for (size_t i = 0; i < n; i++) {
             int a, b; std::cin >> a >> b;
             if (a <= b)
                 jedi.push_back(std::make_pair(a, b));
@@ -56,7 +74,7 @@ int main(int argc, char const *argv[])
                 jedi.push_back(std::make_pair(a, b + m));
         }
 
-        std::cout << "n=" << n << " m=" << m << std::endl;
+        // std::cout << "n=" << n << " m=" << m << std::endl;
 
         // // FIRST PHASE
         // //
@@ -94,13 +112,13 @@ int main(int argc, char const *argv[])
             cover_end = std::max(cover_end, b);
         }
 
+        // std::cout << "  cover_start=" << cover_start << " cover_end=" << cover_end << std::endl;
         int separation_point = -1;
         if (cover_start + m - cover_end > 1) separation_point = (cover_end + 1) % m;
+        // std::cout << "  separation=" << separation_point << std::endl;
 
-        std::cout << separation_point << std::endl;
-
-
-
+        if (separation_point >= 0)
+            std::cout << interval_scheduling(separation_point) << std::endl;
     }
 
     return 0;

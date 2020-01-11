@@ -27,23 +27,24 @@ int interval_scheduling(int separation_point) {
         }
     }
 
+    std::sort(adapted_jedi.begin(), adapted_jedi.end());
+
     int count = 0;
     int expanded = true;
     int pointer = separation_point;
-    while (expanded) {
-        expanded = false;
+    while (true) {
+        std::pair<int, int> lower_bound = std::make_pair(pointer + 1, 0);
+        auto lower = std::lower_bound(adapted_jedi.begin(), adapted_jedi.end(), lower_bound);
+        if (lower == adapted_jedi.end()) break;
         int earliest_ft = std::numeric_limits<int>::max();
-        for (auto &j : adapted_jedi) {
-            std::tie(a, b) = j;
-            if (a > pointer) {
-                expanded = true;
-                earliest_ft = std::min(earliest_ft, b);
+        for (; lower != adapted_jedi.end(); lower++) {
+            int ft = lower->second;
+            if (ft < earliest_ft) {
+                earliest_ft = ft;
             }
         }
-        if (expanded) {
-            count++;
-            pointer = earliest_ft;
-        }
+        pointer = earliest_ft;
+        count++;
     }
     return count;
 }

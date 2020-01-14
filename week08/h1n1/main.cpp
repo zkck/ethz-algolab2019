@@ -31,7 +31,8 @@ typedef boost::graph_traits<Graph>::vertices_size_type                          
 typedef VertexIndex*    Rank;
 typedef Vertex*         Parent;
 
-typedef Delaunay::Face_iterator Fh;
+typedef Delaunay::Face_handle   Fh;
+typedef Delaunay::Vertex_handle Vh;
 
 // Helper types
 struct mission {
@@ -47,8 +48,11 @@ struct edge {
 };
 
 // Comparators
-int by_distance(struct mission &m1, struct mission &m2) {
+int missions_by_distance(struct mission &m1, struct mission &m2) {
     return m1.d > m2.d;
+}
+int edges_by_distance(struct edge &e1, struct edge &e2) {
+    return e1.sq_dist > e2.sq_dist;
 }
 
 
@@ -94,7 +98,7 @@ int algo(int n)
 
     // STEP 1: SORT MISSIONS WITH MOST DEMANDING FIRST
 
-    std::sort(missions.begin(), missions.end(), by_distance);
+    std::sort(missions.begin(), missions.end(), missions_by_distance);
 
     // STEP 2: PREPARE THE INCREMENTAL CONNECTED COMPONENTS GRAPH
 
@@ -120,29 +124,58 @@ int algo(int n)
 
     // Connect all infinite faces to the same CC
     Delaunay::Face_circulator fc = T.incident_faces(T.infinite_vertex());
-    size_t base = fc->info();
+    size_t outside = fc->info();
     while (++fc != T.incident_faces(T.infinite_vertex())) {
-        boost::tie(edge, flag) = boost::add_edge(fc->info(), base, graph);
-        ds.union_set(fc->info(), base);
+        boost::tie(edge, flag) = boost::add_edge(fc->info(), outside, graph);
+        ds.union_set(fc->info(), outside);
     }
 
     // Collect all the edges
     std::vector<struct edge> edges;
     Delaunay::Finite_faces_iterator fit = T.finite_faces_begin();
     for (; fit != T.finite_faces_end(); fit++) {
-        size_t from = fit->info();
+        Fh from = fit;
         for (size_t i = 0; i < 3; i++) {
-            size_t to = fit->neighbor(i)->info();
-            long sq_dist = intersection_length(fit, fit->neighbor(i));
+            Fh to = fit->neighbor(i);
+            long sq_dist = intersection_length(from, to);
+            struct edge e = { sq_dist, from->info(), to->info() };
+            edges.push_back(e);
         }
-
     }
 
+    // Sort the edges by distance in decreasing order
+    std::sort(edges.begin(), edges.end(), edges_by_distance);
 
+    // STEP 3: FOR EACH MISSION, ADD THE EGES THAT ALLOW PASSAGE AND CHECK IF SAME CC
 
+    int results[m];
 
+    auto eit = edges.begin();
+    for (auto &mission : missions) {
+        Point user(mission.x, mission.y);
 
+        // First check if conflict with closest infected
+        Vh closest_infected = T.nearest_vertex(user);
+        if (CGAL::squared_distance(user, closest_infected->point()) < mission.d) {
+            results[mission.index] = false;
+            continue;
+        }
 
+        Fh face = T.locate(user);
+        while (eit->sq_dist >= 4 * mission.d) {
+            boost::tie(edge, flag) = boost::add_edge(eit->from_face, eit->to_face, graph);
+            ds.union_set(eit->from_face, eit->to_face);
+            eit++;
+        }
+
+        if (ds.find_set(outside) == ds.find_set(face->info()))
+            results[mission.index] = true;
+        else
+            results[mission.index] = false;
+    }
+
+    for (int r : results) if (r) std::cout << 'y'; else std::cout << 'n';
+    std::cout << std::endl;
 
     return 0;
 }

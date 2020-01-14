@@ -82,7 +82,9 @@ int num_compatible(std::vector<int> &compatible,
     int subset)
 {
     if (i == M) {
-        compatible.push_back(mask & subset);
+        // Since we are maximizing the number of 1s, those that are not constrained by the mask
+        // can be set to 1
+        compatible.push_back(~mask ^ subset);
         return 1;
     }
 

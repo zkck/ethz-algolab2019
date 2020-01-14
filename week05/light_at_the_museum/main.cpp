@@ -18,6 +18,15 @@ int binary_count(int i, int N) {
     return count;
 }
 
+
+int binary_count_rev(int i, int N) {
+    int count = 0;
+    for (size_t idx = 0; idx < N; ++idx) {
+        if (!(i & 1<<idx)) count++;
+    }
+    return count;
+}
+
 int num_sums(int brightness,
     int off[],
     int on[],
@@ -122,7 +131,7 @@ int main(int argc, char const *argv[])
 
         int min_length = N;
         for (int c : compatible) {
-            int count = binary_count(c, N);
+            int count = binary_count_rev(c, N);
             if (count < min_length)
                 min_length = count;
         }

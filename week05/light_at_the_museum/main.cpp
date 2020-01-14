@@ -9,6 +9,15 @@ void binary_print(size_t i, int N) {
     std::cout << std::endl;
 }
 
+
+int binary_count(int i, int N) {
+    int count = 0;
+    for (size_t idx = 0; idx < N; ++idx) {
+        if (i & 1<<idx) count++;
+    }
+    return count;
+}
+
 int num_sums(int brightness,
     int off[],
     int on[],
@@ -54,9 +63,36 @@ int num_sums(int brightness,
     return result;
 }
 
-int num_compatible(std::vector<int> subsets[], std::vector<int> masks[], int i, int M, int mask, int subset) {
-    // TODO
-    return 0;
+int num_compatible(std::vector<int> &compatible,
+    std::vector<int> subsets[],
+    std::vector<int> masks[],
+    int i,
+    int M,
+    int mask,
+    int subset)
+{
+    if (i == M) {
+        compatible.push_back(mask & subset);
+        return 1;
+    }
+
+    // For each subset and their corresponding mask, check if it is compatible
+    // with the mask/subset up until this point
+    int count = 0;
+    for (size_t j = 0; j < subsets[i].size(); j++) {
+        int common = mask & masks[i][j];
+        if ((subset & common) == (subsets[i][j] & common)) {
+            count += num_compatible(compatible,
+                subsets,
+                masks,
+                i + 1,
+                M,
+                mask    | masks[i][j],
+                subset  | subsets[i][j]);
+        }
+    }
+
+    return count;
 }
 
 int main(int argc, char const *argv[])
@@ -81,8 +117,20 @@ int main(int argc, char const *argv[])
             num_sums(b[i], off[i], on[i], 0, N, 0, 0, subsets[i], masks[i]);
         }
 
+        std::vector<int> compatible;
+        int n = num_compatible(compatible, subsets, masks, 0, M, 0, 0);
 
+        int min_length = N;
+        for (int c : compatible) {
+            int count = binary_count(c, N);
+            if (count < min_length)
+                min_length = count;
+        }
 
+        if (n == 0)
+            std::cout << "impossible" << std::endl;
+        else
+            std::cout << min_length << std::endl;
     }
 
     return 0;

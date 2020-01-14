@@ -8,6 +8,13 @@
 #include <CGAL/Delaunay_triangulation_2.h>
 #include <CGAL/Triangulation_face_base_with_info_2.h>
 
+// Incremental CCs
+#include <boost/foreach.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_utility.hpp>
+#include <boost/graph/incremental_components.hpp>
+#include <boost/pending/disjoint_sets.hpp>
+
 typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
 typedef CGAL::Triangulation_vertex_base_2<K>                Vb;
 typedef CGAL::Triangulation_face_base_with_info_2<size_t,K> Fb;
@@ -15,22 +22,48 @@ typedef CGAL::Triangulation_data_structure_2<Vb,Fb>         Tds;
 typedef CGAL::Delaunay_triangulation_2<K,Tds>               Delaunay;
 typedef Delaunay::Point                                     Point;
 
-// BFS
-typedef Delaunay::Face_handle   Fh;
-typedef Delaunay::Vertex_handle Vh;
+// Incremental CCs
 
-double intersection_length(Fh &from, Fh &to) {
+typedef boost::adjacency_list <boost::vecS, boost::vecS, boost::undirectedS>    Graph;
+typedef boost::graph_traits<Graph>::vertex_descriptor                           Vertex;
+typedef boost::graph_traits<Graph>::vertices_size_type                          VertexIndex;
+
+typedef VertexIndex*    Rank;
+typedef Vertex*         Parent;
+
+typedef Delaunay::Face_iterator Fh;
+
+// Helper types
+struct mission {
+    size_t index;
+    long d;
+    int x;
+    int y;
+};
+struct edge {
+    long sq_dist;
+    size_t from_face;
+    size_t to_face;
+};
+
+// Comparators
+int by_distance(struct mission &m1, struct mission &m2) {
+    return m1.d > m2.d;
+}
+
+
+double intersection_length(Fh &face, Fh &neighbor) {
     std::vector<size_t> joining;
     for (size_t i = 0; i < 3; i++) {
         for (size_t j = 0; j < 3; j++) {
-            if (from->vertex(i) == to->vertex(j))
+            if (face->vertex(i) == neighbor->vertex(j))
                 joining.push_back(i);
         }
     }
     assert (joining.size() == 2);
     double dist = CGAL::squared_distance(
-        from->vertex(joining[0])->point(),
-        from->vertex(joining[1])->point()
+        face->vertex(joining[0])->point(),
+        face->vertex(joining[1])->point()
     );
     return dist;
 }
@@ -49,61 +82,66 @@ int algo(int n)
 
     int m; std::cin >> m;
 
+    std::vector<struct mission> missions;
+
     for (size_t i = 0; i < m; i++)
     {
         int x, y; std::cin >> x >> y;
-        Point user(x, y);
-
         long d; std::cin >> d;
-
-        // First check if user is already infected
-        Delaunay::Vertex_handle closest_infected = T.nearest_vertex(user);
-        if (CGAL::squared_distance(user, closest_infected->point()) < d) {
-            std::cout << "n";
-            continue;
-        }
-
-        // BFS
-
-        // Give an index to all vertices
-        size_t num_faces = 0;
-        for (auto fc = T.all_faces_begin(); fc != T.all_faces_end(); ++fc)
-            fc->info() = num_faces++;
-
-        std::queue<Fh> Q;
-        std::vector<int> visited(num_faces, false);
-
-        // Locate the face on which the user is standing
-        Fh src = T.locate(user);
-        Q.push(src);
-        visited[src->info()] = true;
-
-        int escaped = false;
-        while (!Q.empty()) {
-            Fh v = Q.front(); Q.pop();
-
-            if (T.is_infinite(v)) {
-                escaped = true;
-                break;
-            }
-
-            for (size_t i = 0; i < 3; i++)
-            {
-                Fh u = v->neighbor(i);
-                if (intersection_length(v, u) >= 4 * d && !visited[u->info()]) {
-                    visited[u->info()] = true;
-                    Q.push(u);
-                }
-            }
-        }
-
-        if (escaped)
-            std::cout << "y";
-        else
-            std::cout << "n";
+        struct mission mission = { i, d, x, y };
+        missions.push_back(mission);
     }
 
-    std::cout << std::endl;
+    // STEP 1: SORT MISSIONS WITH MOST DEMANDING FIRST
+
+    std::sort(missions.begin(), missions.end(), by_distance);
+
+    // STEP 2: PREPARE THE INCREMENTAL CONNECTED COMPONENTS GRAPH
+
+    // Give an index to all vertices
+    size_t num_faces = 0;
+    for (auto fc = T.all_faces_begin(); fc != T.all_faces_end(); ++fc)
+        fc->info() = num_faces++;
+
+    // CREATE THE GRAPH
+
+    Graph graph(num_faces);
+
+    std::vector<VertexIndex> rank(num_vertices(graph));
+    std::vector<Vertex> parent(num_vertices(graph));
+
+    boost::disjoint_sets<Rank, Parent> ds(&rank[0], &parent[0]);
+
+    boost::initialize_incremental_components(graph, ds);
+    boost::incremental_components(graph, ds);
+
+    boost::graph_traits<Graph>::edge_descriptor edge;
+    bool flag;
+
+    // Connect all infinite faces to the same CC
+    Delaunay::Face_circulator fc = T.incident_faces(T.infinite_vertex());
+    size_t base = fc->info();
+    while (++fc != T.incident_faces(T.infinite_vertex())) {
+        boost::tie(edge, flag) = boost::add_edge(fc->info(), base, graph);
+        ds.union_set(fc->info(), base);
+    }
+
+    // Collect all the edges
+    std::vector<struct edge> edges;
+    Delaunay::Finite_faces_iterator fit = T.finite_faces_begin();
+    for (; fit != T.finite_faces_end(); fit++) {
+        size_t from = fit->info();
+        for (size_t i = 0; i < 3; i++) {
+            size_t to = fit->neighbor(i)->info();
+            long sq_dist = intersection_length(fit, fit->neighbor(i));
+        }
+
+    }
+
+
+
+
+
 
 
     return 0;

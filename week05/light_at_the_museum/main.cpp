@@ -37,6 +37,7 @@ int num_sums(int brightness,
     std::vector<int> &subsets,
     std::vector<int> &masks)
 {
+    if (brightness < 0) return 0;
     if (i == N) {
         if (brightness == 0) {
             subsets.push_back(subset);
@@ -110,11 +111,11 @@ int main(int argc, char const *argv[])
     while (num_tests-- > 0)
     {
         int N, M; std::cin >> N >> M;
+
         int b[M];
         for (size_t i = 0; i < M; i++)
-        {
             std::cin >> b[i];
-        }
+
         int on[M][N], off[M][N];
         for (size_t i = 0; i < N; i++)
             for (size_t j = 0; j < M; j++)

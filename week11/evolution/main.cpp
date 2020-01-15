@@ -1,7 +1,45 @@
 #include <iostream>
 #include <string>
-#include <map>
+#include <algorithm>
 #include <vector>
+#include <stack>
+#include <map>
+
+std::vector<int> ages;
+std::vector<std::string> species;
+
+struct query {
+    int age_bound;
+    size_t query_index;
+};
+std::vector<std::vector<struct query>> queries;
+
+std::vector<int> query_results;
+
+void DFSResults(std::vector<int> path,
+    std::vector<int> path_ages,
+    int node,
+    std::vector<size_t> children[])
+{
+    path.push_back(node);
+    path_ages.push_back(ages[node]);
+
+    // for each query, find the upper bound
+    for (struct query &q : queries[node]) {
+        auto upper = std::upper_bound(path_ages.rbegin(), path_ages.rend(), q.age_bound);
+        int index = upper - path_ages.rbegin() - 1;
+        query_results[q.query_index] = *(path.rbegin() + index); // could maybe cause SEGV
+    }
+
+    for (size_t child : children[node])
+    {
+        DFSResults(path, path_ages, child, children);
+    }
+
+    path.pop_back();
+    path_ages.pop_back();
+}
+
 
 int main(int argc, char const *argv[])
 {
@@ -9,30 +47,61 @@ int main(int argc, char const *argv[])
     while (num_tests-- > 0) {
         int n, q; std::cin >> n >> q;
 
-        int ages[n];
-        std::string species[n];
+        ages.clear();
+        species.clear();
         std::map<std::string, size_t> indices;
         for (size_t i = 0; i < n; i++)
         {
             std::string s; int a; std::cin >> s >> a;
             indices.insert(std::make_pair(s, i));
-            ages[i] = a;
-            species[i] = s;
+            ages.push_back(a);
+            species.push_back(s);
         }
 
+        std::vector<size_t> children[n];
         std::vector<int> parent(n, -1);
         for (size_t i = 0; i < n - 1; i++)
         {
             std::string s, p; std::cin >> s >> p;
-            parent[indices.find(s)->second] = indices.find(p)->second;
+            size_t s_idx = indices.find(s)->second;
+            size_t p_idx = indices.find(p)->second;
+            parent[s_idx] = p_idx;
+            children[p_idx].push_back(s_idx);
         }
 
+        queries.clear();
+        queries.resize(n);
         for (size_t i = 0; i < q; i++)
         {
             std::string s; int b; std::cin >> s >> b;
             size_t index = indices.find(s)->second;
-            while (parent[index] != -1 && ages[parent[index]] <= b) index = parent[index];
-            std::cout << species[index] << (i == q - 1 ? "" : " ");
+            struct query q = { b, i };
+            queries[index].push_back(q);
+        }
+
+        // IDEA 2: Use a DFS
+
+        int root = -1;
+        for (size_t i = 0; i < n; i++)
+            if (parent[i] == -1)
+                if (root == -1)
+                    root = i;
+                else
+                    throw std::runtime_error("two roots");
+
+        query_results.clear();
+        query_results.resize(n, -1);
+
+        std::vector<int> path;
+        std::vector<int> path_ages;
+        DFSResults(path, path_ages, root, children);
+
+        for (size_t i = 0; i < q; ++i) {
+            int species_index = query_results[i];
+            if (species_index < 0)
+                std::runtime_error("no result for query");
+            else
+                std::cout << species[species_index] << (i == q - 1 ? "" : " ");
         }
         std::cout << std::endl;
 

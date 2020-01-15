@@ -16,8 +16,8 @@ std::vector<std::vector<struct query>> queries;
 
 std::vector<int> query_results;
 
-void DFSResults(std::vector<int> path,
-    std::vector<int> path_ages,
+void DFSResults(std::vector<int> &path,
+    std::vector<int> &path_ages,
     int node,
     std::vector<size_t> children[])
 {
@@ -49,23 +49,28 @@ int main(int argc, char const *argv[])
 
         ages.clear();
         species.clear();
+        int oldest_age = -1;
+        int oldest_idx = -1;
         std::map<std::string, size_t> indices;
         for (size_t i = 0; i < n; i++)
         {
             std::string s; int a; std::cin >> s >> a;
             indices.insert(std::make_pair(s, i));
+            if (a > oldest_age) {
+                oldest_age = a;
+                oldest_idx = i;
+            }
             ages.push_back(a);
             species.push_back(s);
         }
 
         std::vector<size_t> children[n];
-        std::vector<int> parent(n, -1);
+
         for (size_t i = 0; i < n - 1; i++)
         {
             std::string s, p; std::cin >> s >> p;
             size_t s_idx = indices.find(s)->second;
             size_t p_idx = indices.find(p)->second;
-            parent[s_idx] = p_idx;
             children[p_idx].push_back(s_idx);
         }
 
@@ -81,20 +86,12 @@ int main(int argc, char const *argv[])
 
         // IDEA 2: Use a DFS
 
-        int root = -1;
-        for (size_t i = 0; i < n; i++)
-            if (parent[i] == -1)
-                if (root == -1)
-                    root = i;
-                else
-                    throw std::runtime_error("two roots");
-
         query_results.clear();
         query_results.resize(n, -1);
 
         std::vector<int> path;
         std::vector<int> path_ages;
-        DFSResults(path, path_ages, root, children);
+        DFSResults(path, path_ages, oldest_idx, children);
 
         for (size_t i = 0; i < q; ++i) {
             int species_index = query_results[i];

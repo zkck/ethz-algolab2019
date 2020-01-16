@@ -15,21 +15,35 @@ int main(int argc, char const *argv[])
         int n, m, k;
         std::cin >> n >> m >> x >> k;
 
-        // int points[n][n] = { 0 };
+        // int points[n][n] = { 0 }; // Why does this not work
         std::vector<int> points[n];
         for (size_t i = 0; i < n; i++)
-        {
             points[i].resize(n, 0);
-        }
 
 
-        std::vector<int> adj[n];
+        std::vector<int> raw_adj[n];
         for (size_t i = 0; i < m; i++)
         {
             int u, v, p; std::cin >> u >> v >> p;
-            adj[u].push_back(v);
+            raw_adj[u].push_back(v);
             points[u][v] = std::max(points[u][v], p);
         }
+
+        // Back-edge adaptations
+        std::vector<int> adj[n];
+        for (size_t u = 0; u < n; u++) {
+            for (int v : raw_adj[u]) {
+                if (raw_adj[v].empty()) {
+                    // printf("  adapting %ld->%d to %ld->0\n", u, v, u);
+                    adj[u].push_back(0);
+                    points[u][0] = std::max(points[u][0], points[u][v]);
+                } else {
+                    adj[u].push_back(v);
+                }
+            }
+
+        }
+
 
         // BFS
 
@@ -61,7 +75,7 @@ int main(int argc, char const *argv[])
                 if (scores[level + 1][v] < 0) nextQ.push(v);
                 long s = scores[level][u] + points[u][v];
                 scores[level + 1][v] = std::max(scores[level + 1][v], s);
-                // printf("  score=%ld for %d->%d\n", s, u, v);
+                // printf("  %d score=%ld for %d->%d\n",level, s, u, v);
             }
         }
 

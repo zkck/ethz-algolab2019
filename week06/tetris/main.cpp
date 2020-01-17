@@ -63,7 +63,7 @@ int main(int argc, char const *argv[])
 	
         // create vertex capacities for cracks
 	for (int i = 1; i < w; ++i)
-		adder.add_edge(i, i + w - 1, 1);
+		adder.add_edge(i, i + num_cracks, 1);
 
 	for (int l = 0; l < w; ++l) {
 		for (int r : bricks[l]) {
@@ -74,7 +74,7 @@ int main(int argc, char const *argv[])
 		}
 	}
 
-        int flow = boost::push_relabel_max_flow(G, 0, 2 * w - 1);
+        int flow = boost::push_relabel_max_flow(G, src, dst);
 
         std::cout << flow << std::endl;
 

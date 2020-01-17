@@ -16,6 +16,7 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost:
                         boost::property<boost::edge_reverse_t, traits::edge_descriptor> > > >   graph;
 // Interior Property Maps
 typedef boost::graph_traits<graph>::edge_descriptor                     edge_desc;
+typedef boost::graph_traits<graph>::vertex_descriptor                   vertex_desc;
 typedef boost::graph_traits<graph>::out_edge_iterator                   out_edge_it;
 
 // Custom edge adder class, highly recommended
@@ -54,49 +55,56 @@ int main(int argc, char const *argv[])
             adder.add_edge(a, b, c);
         }
 
-        int src = -1, dst = -1;
-        long best_flow = std::numeric_limits<long>::max();
-        for (int i = 0; i < 1; i++) {
-            for (int j = 0; j < n; j++) {
-                if (i == j) continue;
-                long flow = boost::push_relabel_max_flow(G, i, j);
-                if (flow < best_flow) {
-                    best_flow = flow;
-                    src = i;
-                    dst = j;
-                }
-            }
-        }
 
-        boost::push_relabel_max_flow(G, src, dst);
+        // IDEA 1
+        //
+        // Doing a max flow on a certain source and sink will give the minimum cut that has
+        // the source on the "right" set and the sink on the "left" set (0).
+        //
+        // We then need to compare versus the source and sink being to together on the "left"
+        // side (1), on the "right" side (2), and when they are switched (3).
 
-        // BFS to find vertex set S
-        std::vector<int> vis(n, false); // visited flags
-        std::queue<int> Q; // BFS queue (from std:: not boost::)
-        vis[src] = true; // Mark the source as visited
-        int num_visited = 1;
-        Q.push(src);
-        while (!Q.empty()) {
-            const int u = Q.front();
-            Q.pop();
-            out_edge_it ebeg, eend;
-            for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ++ebeg) {
-                const int v = boost::target(*ebeg, G);
-                // Only follow edges with spare capacity
-                if (rc_map[*ebeg] == 0 || vis[v]) continue;
-                vis[v] = true;
-                num_visited++;
-                Q.push(v);
-            }
-        }
+        // We will arbitrarily choose the source and sink to be 0 and 1 respectively.
+        int source = 0, sink = 1;
 
-        std::cout << best_flow << std::endl;
-        std::cout << num_visited;
-        for (size_t v = 0; v < n; v++) {
-            if (vis[v]) std::cout << " " << v;
-        }
-        std::cout << std::endl;
+        // Basic, source on right and sink on left (0)
+        long base_flow      = boost::push_relabel_max_flow(G, source, sink);
 
+        // Inverted, sink on right and source on left (3)
+        long inverted_flow  = boost::push_relabel_max_flow(G, sink, source);
+
+        // Source and sink on left (1)
+        // ===========================
+
+        vertex_desc aux_source = boost::add_vertex(G);
+
+        long inf = std::numeric_limits<int>::max();
+        adder.add_edge(aux_source, source, inf);
+        adder.add_edge(aux_source, sink,   inf);
+
+        long left_flow = std::numeric_limits<long>::max();
+        for (size_t v = 2; v < n; v++)
+            left_flow = std::min(left_flow, boost::push_relabel_max_flow(G, aux_source, v));
+
+        // Clear the auxiliary vertex
+        boost::remove_vertex(aux_source, G);
+
+        // Source and sink on the right (2)
+        // ================================
+
+        vertex_desc aux_sink = boost::add_vertex(G);
+        adder.add_edge(source, aux_sink, inf);
+        adder.add_edge(sink,   aux_sink, inf);
+
+        long right_flow = std::numeric_limits<long>::max();
+        for (size_t v = 2; v < n; v++)
+            right_flow = std::min(right_flow, boost::push_relabel_max_flow(G, v, aux_sink));
+
+        // Calculate minimum
+        std::vector<long> flows = { base_flow, inverted_flow, right_flow, left_flow };
+        std::sort(flows.begin(), flows.end());
+
+        std::cout << flows[0] << std::endl;
     }
 
     return 0;

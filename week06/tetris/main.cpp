@@ -53,44 +53,28 @@ int main(int argc, char const *argv[])
             bricks[l].push_back(r);
         }
 
-        graph G(2 * w + n);
+        graph G(2 * w);
         edge_adder adder(G);
 
+	int src = 0;
+	int dst = 2 * w - 1;
+
+	int num_cracks = w - 1;
+	
         // create vertex capacities for cracks
+	for (int i = 1; i < w; ++i)
+		adder.add_edge(i, i + w - 1, 1);
 
-        int v_cracks[w];
+	for (int l = 0; l < w; ++l) {
+		for (int r : bricks[l]) {
+			int from = l, to = r;
+			if (l > 0) from += num_cracks;
+			if (r == w) to = dst;
+			adder.add_edge(from, to, 1);
+		}
+	}
 
-        int num_vertices = 0;
-        for (size_t i = 0; i < w; i++)
-        {
-            v_cracks[i] = num_vertices++;
-            if (i > 0)
-                adder.add_edge(v_cracks[i], num_vertices++, 1);
-
-            int from = i == 0 ? v_cracks[i] : v_cracks[i] + 1;
-            for (const auto &r : bricks[i])
-                adder.add_edge(from, num_vertices++, 1);
-        }
-
-
-        int v_start = 0;
-        int v_end   = 2 * w + n - 1;
-
-        num_vertices = 0;
-        for (size_t i = 0; i < w; i++)
-        {
-            num_vertices += i == 0 ? 1 : 2;
-            for (size_t j = 0; j < bricks[i].size(); j++)
-            {
-                int c = bricks[i][j];
-                if (c < w)
-                    adder.add_edge(num_vertices++, v_cracks[c], 1);
-                else
-                    adder.add_edge(num_vertices++, v_end, 1);
-            }
-        }
-
-        int flow = boost::push_relabel_max_flow(G, 0, v_end);
+        int flow = boost::push_relabel_max_flow(G, 0, 2 * w - 1);
 
         std::cout << flow << std::endl;
 

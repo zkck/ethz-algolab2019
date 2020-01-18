@@ -136,17 +136,17 @@ int main(int argc, char const *argv[])
         int num_vertices = 1;
         Q.push(min_source);
         while (!Q.empty()) {
-                const int u = Q.front();
-                Q.pop();
-                out_edge_it ebeg, eend;
-                for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ++ebeg) {
-                        const int v = boost::target(*ebeg, G);
-                        // Only follow edges with spare capacity
-                        if (rc_map[*ebeg] == 0 || vis[v]) continue;
-                        vis[v] = true;
-                        num_vertices++;
-                        Q.push(v);
-                }
+            const int u = Q.front();
+            Q.pop();
+            out_edge_it ebeg, eend;
+            for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ++ebeg) {
+                const int v = boost::target(*ebeg, G);
+                // Only follow edges with spare capacity
+                if (rc_map[*ebeg] == 0 || vis[v]) continue;
+                vis[v] = true;
+                num_vertices++;
+                Q.push(v);
+            }
         }
 
         std::cout << flow << std::endl;

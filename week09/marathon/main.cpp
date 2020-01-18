@@ -43,22 +43,26 @@ int dijkstra_path(const weighted_graph &G, int s, std::vector<int> &dist_map, st
 }
 
 // Custom edge adder class, highly recommended
-class edge_adder {
-  graph &G;
+class edge_adder
+{
+    graph &G;
 
- public:
-  explicit edge_adder(graph &G) : G(G) {}
+public:
+    explicit edge_adder(graph &G) : G(G) {}
 
-  void add_edge(int from, int to, long capacity) {
-    auto c_map = boost::get(boost::edge_capacity, G);
-    auto r_map = boost::get(boost::edge_reverse, G);
-    const auto e = boost::add_edge(from, to, G).first;
-    const auto rev_e = boost::add_edge(to, from, G).first;
-    c_map[e] = capacity;
-    c_map[rev_e] = 0; // reverse edge has no capacity!
-    r_map[e] = rev_e;
-    r_map[rev_e] = e;
-  }
+    void add_edge(int from, int to, long capacity)
+    {
+        // ignore if edge exists
+        if (boost::edge(from, to, G).second) return;
+        auto c_map = boost::get(boost::edge_capacity, G);
+        auto r_map = boost::get(boost::edge_reverse, G);
+        const auto e = boost::add_edge(from, to, G).first;
+        const auto rev_e = boost::add_edge(to, from, G).first;
+        c_map[e] = capacity;
+        c_map[rev_e] = 0; // reverse edge has no capacity!
+        r_map[e] = rev_e;
+        r_map[rev_e] = e;
+    }
 };
 
 int main(int argc, char const *argv[])
@@ -103,10 +107,13 @@ int main(int argc, char const *argv[])
         std::vector<int> dist_map_f(n);
         dijkstra_path(G, f, dist_map_f, pred_map_f);
 
-        int min_dist = std::numeric_limits<int>::max();
+        int inf = std::numeric_limits<int>::max();
+
+        int min_dist = inf;
         std::vector<int> via_vertices;
         for (int i = 0; i < n; i++)
         {
+            if (dist_map[i] == inf || dist_map_f[i] == inf) continue;
             int dist = dist_map[i] + dist_map_f[i];
             if (dist < min_dist) {
                 min_dist = dist;
@@ -115,10 +122,29 @@ int main(int argc, char const *argv[])
             if (dist == min_dist) via_vertices.push_back(i);
         }
 
+        graph FG(n);
+        edge_adder adder(FG);
+
+        // O(n^2)
         for (int via_vertex : via_vertices)
         {
-            /* code */
+            // add path to source
+            int cur = via_vertex;
+            while (cur != s) {
+                int pred = pred_map[cur];
+                adder.add_edge(pred, cur, cap[cur][pred]);
+                cur = pred;
+            }
+            // add path to finish
+            cur = via_vertex;
+            while (cur != f) {
+                int pred = pred_map_f[cur];
+                adder.add_edge(cur, pred, cap[cur][pred]);
+                cur = pred;
+            }
         }
+
+        std::cout << boost::push_relabel_max_flow(FG, s, f) << std::endl;
 
     }
     return 0;

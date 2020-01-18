@@ -1,5 +1,7 @@
 #include <iostream>
 
+#define BOUND 20
+
 // BGL includes
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/cycle_canceling.hpp>
@@ -48,6 +50,10 @@ int main(int argc, char const *argv[])
 
         graph G(n + 2);
         edge_adder adder(G);
+        auto c_map = boost::get(boost::edge_capacity, G);
+        auto r_map = boost::get(boost::edge_reverse, G);
+        auto rc_map = boost::get(boost::edge_residual_capacity, G);
+
 
         int v_source = 0, v_sink = n + 1;
 
@@ -61,7 +67,7 @@ int main(int argc, char const *argv[])
         for (size_t i = 0; i < n; i++)
         {
             int s, p; std::cin >> s >> p;
-            adder.add_edge(1 + i, v_sink, s, -p);
+            adder.add_edge(1 + i, v_sink, s, -p + BOUND);
             num_students += s;
         }
         for (size_t i = 0; i < n - 1; i++)
@@ -70,9 +76,20 @@ int main(int argc, char const *argv[])
             adder.add_edge(1 + i, 2 + i, v, e);
         }
 
-        long flow = boost::push_relabel_max_flow(G, v_source, v_sink);
-        boost::cycle_canceling(G);
-        long revenue = -boost::find_flow_cost(G);
+        // long flow = boost::push_relabel_max_flow(G, v_source, v_sink);
+        // boost::cycle_canceling(G);
+        // long revenue = -boost::find_flow_cost(G);
+
+        // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
+        boost::successive_shortest_path_nonnegative_weights(G, v_source, v_sink);
+        int revenue = -boost::find_flow_cost(G);
+        int flow = 0;
+        out_edge_it e, eend;
+        for(boost::tie(e, eend) = boost::out_edges(boost::vertex(v_source,G), G); e != eend; ++e) {
+            flow += c_map[*e] - rc_map[*e];
+        }
+
+        revenue += flow * BOUND;
 
         if (flow == num_students) {
             std::cout << "possible ";

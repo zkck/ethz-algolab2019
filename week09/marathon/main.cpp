@@ -114,9 +114,8 @@ int main(int argc, char const *argv[])
             }
         }
 
-        std::vector<vertex_desc> pred_map(n);
         std::vector<int> dist_map(n);
-        dijkstra_path(G, f, dist_map, pred_map);
+        dijkstra_dist(G, f, dist_map);
 
         graph FG(n);
         edge_adder adder(FG);

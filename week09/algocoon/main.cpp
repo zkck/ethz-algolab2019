@@ -64,14 +64,27 @@ int main(int argc, char const *argv[])
         // We then need to compare versus the source and sink being to together on the "left"
         // side (1), on the "right" side (2), and when they are switched (3).
 
+        long min_flow = std::numeric_limits<long>::max();
+        int min_source = -1, min_sink = -1;
+
         // We will arbitrarily choose the source and sink to be 0 and 1 respectively.
         int source = 0, sink = 1;
 
         // Basic, source on right and sink on left (0)
         long base_flow      = boost::push_relabel_max_flow(G, source, sink);
+        if (base_flow < min_flow) {
+            min_flow = base_flow;
+            min_source = source;
+            min_sink   = sink;
+        }
 
         // Inverted, sink on right and source on left (3)
         long inverted_flow  = boost::push_relabel_max_flow(G, sink, source);
+        if (inverted_flow < min_flow) {
+            min_flow = inverted_flow;
+            min_source = sink;
+            min_sink   = source;
+        }
 
         // Source and sink on left (1)
         // ===========================
@@ -82,9 +95,14 @@ int main(int argc, char const *argv[])
         adder.add_edge(aux_source, source, inf);
         adder.add_edge(aux_source, sink,   inf);
 
-        long left_flow = std::numeric_limits<long>::max();
-        for (size_t v = 2; v < n; v++)
-            left_flow = std::min(left_flow, boost::push_relabel_max_flow(G, aux_source, v));
+        for (size_t v = 2; v < n; v++) {
+            int flow = boost::push_relabel_max_flow(G, aux_source, v);
+            if (flow < min_flow) {
+                min_flow = flow;
+                min_source = source;
+                min_sink   = v;
+            }
+        }
 
         // Clear the auxiliary vertex
         boost::clear_vertex(aux_source, G);
@@ -96,15 +114,51 @@ int main(int argc, char const *argv[])
         adder.add_edge(source, aux_sink, inf);
         adder.add_edge(sink,   aux_sink, inf);
 
-        long right_flow = std::numeric_limits<long>::max();
-        for (size_t v = 2; v < n; v++)
-            right_flow = std::min(right_flow, boost::push_relabel_max_flow(G, v, aux_sink));
+        for (size_t v = 2; v < n; v++) {
+            long flow = boost::push_relabel_max_flow(G, v, aux_sink);
+            if (flow < min_flow) {
+                min_flow = flow;
+                min_source = v;
+                min_sink   = sink;
+            }
+        }
+
+        // Clear the auxiliary vertex
+        boost::clear_vertex(aux_sink, G);
 
         // Calculate minimum
-        std::vector<long> flows = { base_flow, inverted_flow, right_flow, left_flow };
-        std::sort(flows.begin(), flows.end());
+        int flow = boost::push_relabel_max_flow(G, min_source, min_sink);
 
-        std::cout << flows[0] << std::endl;
+        // BFS to find vertex set S
+        std::vector<int> vis(n, false); // visited flags
+        std::queue<int> Q; // BFS queue (from std:: not boost::)
+        vis[min_source] = true; // Mark the source as visited
+        int num_vertices = 1;
+        Q.push(min_source);
+        while (!Q.empty()) {
+                const int u = Q.front();
+                Q.pop();
+                out_edge_it ebeg, eend;
+                for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ++ebeg) {
+                        const int v = boost::target(*ebeg, G);
+                        // Only follow edges with spare capacity
+                        if (rc_map[*ebeg] == 0 || vis[v]) continue;
+                        vis[v] = true;
+                        num_vertices++;
+                        Q.push(v);
+                }
+        }
+
+        std::cout << flow << std::endl;
+
+        // Output S
+        std::cout << num_vertices;
+        for (int i = 0; i < n; ++i) {
+                if (vis[i]) std::cout << " " << i;
+        }
+        std::cout << "\n";
+
+
     }
 
     return 0;

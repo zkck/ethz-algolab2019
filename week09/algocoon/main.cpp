@@ -87,7 +87,7 @@ int main(int argc, char const *argv[])
             left_flow = std::min(left_flow, boost::push_relabel_max_flow(G, aux_source, v));
 
         // Clear the auxiliary vertex
-        boost::remove_vertex(aux_source, G);
+        boost::clear_vertex(aux_source, G);
 
         // Source and sink on the right (2)
         // ================================

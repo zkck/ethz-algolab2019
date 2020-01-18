@@ -1,6 +1,7 @@
 #include <iostream>
-
+#include <stack>
 #include <vector>
+
 // BGL flow include *NEW*
 #include <boost/graph/push_relabel_max_flow.hpp>
 
@@ -21,6 +22,9 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost:
     boost::property<boost::edge_capacity_t, long,
         boost::property<boost::edge_residual_capacity_t, long,
             boost::property<boost::edge_reverse_t, traits::edge_descriptor>>>> graph;
+
+// DFS
+typedef boost::graph_traits<weighted_graph>::out_edge_iterator out_edge_it;
 
 int dijkstra_dist(const weighted_graph &G, int s, std::vector<int> &dist_map) {
     int n = boost::num_vertices(G);
@@ -83,6 +87,17 @@ int main(int argc, char const *argv[])
         // Run Dijktra on both the source and the destination. Then for find the vertices in the
         // graph for which the distance to vertex from source + distance to vertex from
         // destination is minimal.
+        //
+        // Conclusion: this does not consider all paths unfortunately. See test 5 (./print_test
+        // 4 < testsets/test1.in).
+
+        // IDEA 2
+        //
+        // Run Dijkstra on the destination (finish). From the source, add to the flow and
+        // recurse on the edges that:
+        //   - edge.dist + dijksta_dist[v] == dijkstra_dist[u]
+        //
+        // It would be better to do this in a DFS manner maybe?
 
         weighted_graph G(n);
         weight_map weights = boost::get(boost::edge_weight, G);
@@ -111,48 +126,36 @@ int main(int argc, char const *argv[])
 
         std::vector<vertex_desc> pred_map(n);
         std::vector<int> dist_map(n);
-        dijkstra_path(G, s, dist_map, pred_map);
-
-        std::vector<vertex_desc> pred_map_f(n);
-        std::vector<int> dist_map_f(n);
-        dijkstra_path(G, f, dist_map_f, pred_map_f);
-
-        int inf = std::numeric_limits<int>::max();
-
-        int min_dist = inf;
-        std::vector<int> via_vertices;
-        for (int i = 0; i < n; i++)
-        {
-            if (dist_map[i] == inf || dist_map_f[i] == inf) continue;
-            int dist = dist_map[i] + dist_map_f[i];
-            if (dist < min_dist) {
-                min_dist = dist;
-                via_vertices.clear();
-            }
-            if (dist == min_dist) via_vertices.push_back(i);
-        }
+        dijkstra_path(G, f, dist_map, pred_map);
 
         graph FG(n);
         edge_adder adder(FG);
 
-        // O(n^2)
-        for (int via_vertex : via_vertices)
-        {
-            // add path to source
-            int cur = via_vertex;
-            while (cur != s) {
-                int pred = pred_map[cur];
-                adder.add_edge(pred, cur, cap[cur][pred]);
-                cur = pred;
-            }
-            // add path to finish
-            cur = via_vertex;
-            while (cur != f) {
-                int pred = pred_map_f[cur];
-                adder.add_edge(cur, pred, cap[cur][pred]);
-                cur = pred;
+        // DFS
+
+        std::stack<int> S;
+        std::vector<int> visited(n, false);
+
+        // Starting at source
+        S.push(s);
+        visited[s] = true;
+
+        out_edge_it ebeg, eend;
+        while (!S.empty()) {
+            int u = S.top(); S.pop();
+            boost::tie(ebeg, eend) = boost::out_edges(u, G);
+            for (; ebeg != eend; ebeg++) {
+                int v = boost::target(*ebeg, G);
+                if (weights[*ebeg] + dist_map[v] == dist_map[u])
+                    adder.add_edge(u, v, cap[u][v]);
+                if (!visited[v]) {
+                    S.push(v);
+                    visited[v] = true;
+                }
             }
         }
+
+
 
         std::cout << boost::push_relabel_max_flow(FG, s, f) << std::endl;
 

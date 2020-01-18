@@ -71,7 +71,8 @@ int main(int argc, char const *argv[])
     while (num_tests-- > 0) {
         int n, m, s, f; std::cin >> n >> m >> s >> f;
 
-        int cap[n][n];
+        std::vector<int> cap[n];
+        for (auto &vect : cap) vect.resize(n, -1);
 
         // PROMBLEM 1
         //
@@ -86,7 +87,7 @@ int main(int argc, char const *argv[])
         weighted_graph G(n);
         weight_map weights = boost::get(boost::edge_weight, G);
 
-        edge_desc e;
+        edge_desc e; int flag;
         for (size_t i = 0; i < m; i++)
         {
             // a : intersection
@@ -94,9 +95,18 @@ int main(int argc, char const *argv[])
             // c : width (capacity)
             // d : length
             int a, b, c, d; std::cin >> a >> b >> c >> d;
-            e = boost::add_edge(a, b, G).first; weights[e] = d;
-            cap[a][b] = c;
-            cap[b][a] = c;
+            boost::tie(e, flag) = boost::edge(a, b, G);
+            if (flag && d <= weights[e]) {
+                if (d == weights[e])
+                    cap[a][b] = cap[b][a] = cap[a][b] + c;
+                else {
+                    weights[e] = d;
+                    cap[a][b] = cap[b][a] = c;
+                }
+            } else if (!flag) {
+                e = boost::add_edge(a, b, G).first; weights[e] = d;
+                cap[a][b] = cap[b][a] = c;
+            }
         }
 
         std::vector<vertex_desc> pred_map(n);

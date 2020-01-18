@@ -35,16 +35,6 @@ int dijkstra_dist(const weighted_graph &G, int s, std::vector<int> &dist_map) {
 
     return 0;
 }
-int dijkstra_path(const weighted_graph &G, int s, std::vector<int> &dist_map, std::vector<vertex_desc> &pred_map) {
-    int n = boost::num_vertices(G);
-
-    boost::dijkstra_shortest_paths(G, s,
-        boost::distance_map(boost::make_iterator_property_map(
-            dist_map.begin(), boost::get(boost::vertex_index, G)))
-        .predecessor_map(boost::make_iterator_property_map(
-            pred_map.begin(), boost::get(boost::vertex_index, G))));
-    return 0;
-}
 
 // Custom edge adder class, highly recommended
 class edge_adder
@@ -154,8 +144,6 @@ int main(int argc, char const *argv[])
                 }
             }
         }
-
-
 
         std::cout << boost::push_relabel_max_flow(FG, s, f) << std::endl;
 

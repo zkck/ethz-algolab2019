@@ -53,7 +53,6 @@ int main(int argc, char const *argv[])
                 p_sum = r_sum - l_sum;
             } while (p_sum > k && ++left <= right); // lazy evaluation makes shit work nicely here
             if (p_sum == k) {
-                // std::cout << left << " " << right << std::endl;
                 jumps[left] = right;
             }
         }

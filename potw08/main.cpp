@@ -79,9 +79,17 @@ int main(int argc, char const *argv[])
         }
 
         std::vector<int> profits_between[Z];
-        for (size_t i = 0; i < Z; i++) profits_between[i].resize(Z, 0);
+        for (size_t i = 0; i < Z; i++)
+            for (size_t j = 0; j < Z; j++)
+            {
+                profits_between[i].push_back(-c[j]);
+            }
 
-        std::vector<int> profits_to_sink(Z, 0);
+
+        std::vector<int> profits_to_sink;
+        for (size_t i = 0; i < Z; i++) {
+            profits_to_sink.push_back(-c[i]);
+        }
 
         int easy_money = 0;
         for (size_t i = 0; i < J; i++) {

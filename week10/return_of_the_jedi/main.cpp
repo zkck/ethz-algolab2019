@@ -71,7 +71,7 @@ int main(int argc, char const *argv[])
                 const vertex_desc u = S.back(); S.pop_back();
                 for (vertex_desc &v : adj[u]) {
                     if (!visited[v]) {
-                        source_set.insert(u);
+                        source_set.insert(v);
                         S.push_back(v);
                         visited[v] = true;
                     }
@@ -91,7 +91,7 @@ int main(int argc, char const *argv[])
                 const vertex_desc u = S.back(); S.pop_back();
                 for (vertex_desc &v : adj[u]) {
                     if (!visited[v]) {
-                        target_set.insert(u);
+                        target_set.insert(v);
                         S.push_back(v);
                         visited[v] = true;
                     }

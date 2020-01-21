@@ -6,6 +6,10 @@
 #include <limits>
 
 
+int comp_second(std::pair<int, int> &jedi1, std::pair<int, int> &jedi2) {
+    return jedi1.second < jedi2.second;
+}
+
 int interval_scheduling(std::vector<std::pair<int, int>> jedi, int m, int from, int to) {
     std::vector<std::pair<int, int>> adapted_jedi;
     if (from > to) { // a > b
@@ -35,24 +39,17 @@ int interval_scheduling(std::vector<std::pair<int, int>> jedi, int m, int from, 
             }
         }
     }
-    std::sort(adapted_jedi.begin(), adapted_jedi.end());
+    std::sort(adapted_jedi.begin(), adapted_jedi.end(), comp_second);
     // for (auto &j : adapted_jedi) std::cout << "  " << j.first << " " << j.second << std::endl;
+
     int count = 0;
-    int expanded = true;
     int pointer = from;
-    while (true) {
-        std::pair<int, int> lower_bound = std::make_pair(pointer + 1, 0);
-        auto lower = std::lower_bound(adapted_jedi.begin(), adapted_jedi.end(), lower_bound);
-        if (lower == adapted_jedi.end()) break;
-        int earliest_ft = std::numeric_limits<int>::max();
-        for (; lower != adapted_jedi.end(); lower++) {
-            int ft = lower->second;
-            if (ft < earliest_ft) {
-                earliest_ft = ft;
-            }
+
+    for (auto it = adapted_jedi.begin(); it != adapted_jedi.end(); it++) {
+        if (it->first > pointer) {
+            count++;
+            pointer = it->second;
         }
-        pointer = earliest_ft;
-        count++;
     }
     return count;
 

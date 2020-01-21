@@ -14,8 +14,6 @@ int interval_scheduling(std::vector<std::pair<int, int>> jedi, int m, int from, 
     std::vector<std::pair<int, int>> adapted_jedi;
     if (from > to) { // a > b
         std::swap(from, to);
-        // std::cout << "from=" << from << " to=" << to << std::endl;
-        // easy case
         for (auto &j : jedi)
         {
             int a = j.first;
@@ -24,31 +22,29 @@ int interval_scheduling(std::vector<std::pair<int, int>> jedi, int m, int from, 
         }
     } else { // a <= b (from <= to)
         std::swap(from, to);
-        // std::cout << "from=" << from << " to=" << to << std::endl;
-
-        // harder case
         for (auto &j : jedi)
         {
             int a = j.first;
             int b = j.second;
             if (a <= b) {
-                if (from < a) adapted_jedi.push_back(j);
-                else if (b < to) adapted_jedi.push_back(std::make_pair(m + a, m + b));
+                if (from < a)
+                    adapted_jedi.push_back(j);
+                else if (b < to)
+                    adapted_jedi.push_back(std::make_pair(m + a, m + b));
             } else {
-                if (from < a && b < to) adapted_jedi.push_back(std::make_pair(a, m + b));
+                if (from < a && b < to)
+                    adapted_jedi.push_back(std::make_pair(a, m + b));
             }
         }
     }
     std::sort(adapted_jedi.begin(), adapted_jedi.end(), comp_second);
-    // for (auto &j : adapted_jedi) std::cout << "  " << j.first << " " << j.second << std::endl;
 
     int count = 0;
-    int pointer = from;
-
+    int finishing_time = from;
     for (auto it = adapted_jedi.begin(); it != adapted_jedi.end(); it++) {
-        if (it->first > pointer) {
+        if (it->first > finishing_time) {
             count++;
-            pointer = it->second;
+            finishing_time = it->second;
         }
     }
     return count;
@@ -127,8 +123,6 @@ int main(int argc, char const *argv[])
         std::sort(cover_ends.begin(), cover_ends.end());
         int min_seg = min_segment(cover_begins, cover_ends, num_base);
 
-        // std::cout << min_seg << std::endl;
-
         // get all jedi on which to do the interval scheduling
         std::vector<std::pair<int, int>> interval_scheduling_jedi;
         for (auto &j : jedi) {
@@ -143,12 +137,10 @@ int main(int argc, char const *argv[])
             }
         }
 
-        // assert(interval_scheduling_jedi.size() == 0);
-
         int max_jedi = interval_scheduling(jedi, m, min_seg, min_seg);
         for (auto &is_j : interval_scheduling_jedi) {
-            // std::cout << is_j.first << " " << is_j.second << std::endl;
-            max_jedi = std::max(max_jedi, 1 + interval_scheduling(jedi, m, is_j.first, is_j.second));
+            int is_result = interval_scheduling(jedi, m, is_j.first, is_j.second);
+            max_jedi = std::max(max_jedi, 1 + is_result);
         }
 
         std::cout << max_jedi << std::endl;

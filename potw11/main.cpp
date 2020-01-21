@@ -72,26 +72,42 @@ int main(int argc, char const *argv[])
         // what is the maximum number of suitcases he can send
         // without exceeding his budget
 
-        int upper = 11, lower = 0;
-
-        int new_a = boost::add_vertex(G);
-        edge_desc e = adder.add_edge(a, new_a, 1, 0);
-
-        while (upper - lower > 1) {
-            int threshold =  (upper + lower) / 2;
-            c_map[e] = threshold;
-            
-            boost::successive_shortest_path_nonnegative_weights(G, k, new_a);
-            int cost = boost::find_flow_cost(G);
-
-            if (cost > b) {
-                upper = threshold;
-            } else {
-                lower = threshold;
-            }
+        // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
+        boost::successive_shortest_path_nonnegative_weights(G, k, a);
+        int cost = boost::find_flow_cost(G);
+        // Iterate over all edges leaving the source to sum up the flow values.
+        int flow = 0;
+        out_edge_it e, eend;
+        for(boost::tie(e, eend) = boost::out_edges(boost::vertex(k,G), G); e != eend; ++e) {
+            flow += c_map[*e] - rc_map[*e];
         }
 
-        std::cout << boost::push_relabel_max_flow(G, k, new_a) << std::endl;
+        if (cost > b) {
+            int aux_source = boost::add_vertex(G);
+            adder.add_edge(aux_source, k, 0, 0);
+
+            edge_desc edge; int flag;
+            boost::tie(edge, flag) = boost::edge(aux_source, k, G);
+            assert(flag); // check it exists
+
+            // invariant: upper is invalid, lower is valid
+            int lower = 0, upper = flow;
+            while (upper - lower > 1) {
+                int num_suitcases = (upper + lower) / 2;
+                c_map[edge] = num_suitcases;
+                boost::successive_shortest_path_nonnegative_weights(G, aux_source, a);
+                int cost = boost::find_flow_cost(G);
+                if (cost > b)
+                    upper = num_suitcases;
+                else
+                    lower = num_suitcases;
+            }
+            std::cout << lower << std::endl;
+        } else {
+            std::cout << flow << std::endl;
+        }
+
+
     }
 
     return 0;

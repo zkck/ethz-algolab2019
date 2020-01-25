@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <queue>
 
 // BGL include
 #include <boost/graph/adjacency_list.hpp>
@@ -14,8 +15,10 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost:
         boost::property<boost::edge_residual_capacity_t, long,
             boost::property<boost::edge_reverse_t, traits::edge_descriptor>>>> graph;
 
-typedef traits::vertex_descriptor vertex_desc;
-typedef traits::edge_descriptor edge_desc;
+// Interior Property Maps
+typedef boost::graph_traits<graph>::edge_descriptor                     edge_desc;
+typedef boost::graph_traits<graph>::out_edge_iterator                   out_edge_it;
+
 
 // Custom edge adder class, highly recommended
 class edge_adder {
@@ -43,94 +46,93 @@ int main(int argc, char const *argv[])
     while (num_tests-- > 0) {
         int Z, J; std::cin >> Z >> J;
 
+        graph G(2 + J + Z);
+        edge_adder adder(G);
+        auto rc_map = boost::get(boost::edge_residual_capacity, G);
+
+        int src = 0, sink = J + Z + 1;
+
         // ticket costs
-        int c[Z];
-        for (size_t i = 0; i < Z; ++i) std::cin >> c[i];
+        int costs[Z];
+        for (size_t i = 0; i < Z; ++i) {
+            std::cin >> costs[i];
+            adder.add_edge(1 + J + i, sink, costs[i]);
+        }
 
         // job rewards
-        int p[J];
-        for (size_t j = 0; j < J; ++j) std::cin >> p[j];
+        int rewards[J];
+        for (size_t j = 0; j < J; ++j) {
+            std::cin >> rewards[j];
+            adder.add_edge(src, 1 + j, rewards[j]);
+        }
 
         // job zones
-        std::vector<int> job_zones[J];
-        for (size_t i = 0; i < J; ++i) {
+        const int INF = std::numeric_limits<int>::max();
+        for (size_t j = 0; j < J; ++j) {
             int N; std::cin >> N;
-            for (size_t j = 0; j < N; j++) {
+            for (size_t i = 0; i < N; i++) {
                 int zone; std::cin >> zone;
-                job_zones[i].push_back(zone);
+                adder.add_edge(1 + j, 1 + J + zone, INF);
             }
+
         }
 
-        // IDEA 1
+        // GOAL
         //
-        // Model the problem as a max-flow with the zones as the nodes.
+        // Maximize the profit: the rewards of the chosen jobs - the cost of the zones
+
+        // Per job:
+        //   - either take the job : profit=profit[job]             loss=cost_tickets[job]
+        //   - do not take the job:  profit=cost_no_tickets[job]    loss=profit[job]
+
+        // Formulating the problem with min-cut
         //
-        // Each zone gets from the source a capacity of the zones profit, which is the sum of
-        // all the zones that start at that zone minus the ticket for that zone.
+        // Firstly, consider two layers: one for the jobs, and another for the zones.
         //
-        // Then this zone passes on to each next zone the sum of the profits of jobs that need
-        // to carry onto that zone. The jobs ending at that zone work toward the capacity of
-        // the edge going to the destination.
+        // We connect the source to the jobs with an edge capacity that corresponds to the profit
+        // of the job.
+        //
+        // We connect the zones to the sink with an edge capacity corresponding to the cost of
+        // the zone's ticket.
+        //
+        // We want to make the jobs and its zones inseparable, i.e. they cannot be disconnected
+        // in the min-cut. This means that we need to connect them with an edge of an infinitely
+        // large capacity.
+        //
+        // The min-cut algorithm (max-flow) will choose the minimum between paying for a job
+        // and paying for its tickets. The jobs/zones in the min-cut are those that have been
+        // selected.
 
-        // Initialize with negative ticket costs
-        std::vector<int> profits_from_source;
-        for (size_t i = 0; i < Z; i++) {
-            profits_from_source.push_back(-c[i]);
+        // Find a min cut via maxflow
+        int flow = boost::push_relabel_max_flow(G, src, sink);
+
+        // BFS to find vertex set S
+        std::vector<int> vis(2 + J + Z, false); // visited flags
+        std::queue<int> Q; // BFS queue (from std:: not boost::)
+        vis[src] = true; // Mark the source as visited
+        Q.push(src);
+        while (!Q.empty()) {
+                const int u = Q.front();
+                Q.pop();
+                out_edge_it ebeg, eend;
+                for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ++ebeg) {
+                        const int v = boost::target(*ebeg, G);
+                        // Only follow edges with spare capacity
+                        if (rc_map[*ebeg] == 0 || vis[v]) continue;
+                        vis[v] = true;
+                        Q.push(v);
+                }
         }
 
-        std::vector<int> profits_between[Z];
-        for (size_t i = 0; i < Z; i++)
-            for (size_t j = 0; j < Z; j++)
-            {
-                profits_between[i].push_back(-c[j]);
-            }
-
-
-        std::vector<int> profits_to_sink;
-        for (size_t i = 0; i < Z; i++) {
-            profits_to_sink.push_back(-c[i]);
+        int total = 0;
+        for (int i = 0; i < 2 + J + Z; ++i) {
+            if (!vis[i]) continue;
+            if (1 <= i && i <= J)
+                total += rewards[i - 1];
+            if (J < i && i <= J + Z)
+                total -= costs[i - J - 1];
         }
-
-        int easy_money = 0;
-        for (size_t i = 0; i < J; i++) {
-            if (job_zones[i].empty()) {
-                easy_money += p[i];
-                continue;
-            }
-            int zone_start = job_zones[i].front();
-            int zone_end   = job_zones[i].back();
-            profits_from_source[zone_start] += p[i];
-            profits_to_sink[zone_end] += p[i];
-            for (size_t j = 0; j < job_zones[i].size() - 1; j++)
-            {
-                int zone_from = job_zones[i][j];
-                int zone_to   = job_zones[i][j + 1];
-                profits_between[zone_from][zone_to] += p[i];
-            }
-        }
-
-        graph G(Z);
-        edge_adder adder(G);
-
-        const vertex_desc v_source = boost::add_vertex(G);
-        const vertex_desc v_sink   = boost::add_vertex(G);
-
-        adder.add_edge(v_source, v_sink, easy_money);
-
-        for (size_t i = 0; i < Z; i++)
-        {
-            if (profits_from_source[i] > 0)
-                adder.add_edge(v_source, i, profits_from_source[i]);
-            if (profits_to_sink[i] > 0)
-                adder.add_edge(i, v_sink, profits_to_sink[i]);
-            for (size_t j = i + 1; j < Z; j++)
-            {
-                if (profits_between[i][j] > 0)
-                    adder.add_edge(i, j, profits_between[i][j]);
-            }
-        }
-
-        std::cout << boost::push_relabel_max_flow(G, v_source, v_sink) << std::endl;
+        std::cout << total << std::endl;
 
 
 

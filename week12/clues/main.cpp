@@ -13,37 +13,18 @@ typedef CGAL::Triangulation_data_structure_2<Vb>                    Tds;
 typedef CGAL::Delaunay_triangulation_2<K, Tds>                      Delaunay;
 typedef Delaunay::Point                                             Point;
 
-#define COLOR_UNKNOWN  -1
-#define COLOR_BLACK     0
-#define COLOR_WHITE     1
 
-int other_color(int color) { return color ? 0 : 1; }
-
-int color(const Delaunay::Vertex_handle &u, Delaunay &T, int c, int r, std::vector<int> &coloring, boost::disjoint_sets_with_storage<> &uf) {
-    auto vit = T.incident_vertices(u);
-    coloring[u->info()] = c;
-
-    do
-    {
-        if (T.is_infinite(vit) || CGAL::squared_distance(u->point(), vit->point()) > r * r)
-            continue;
-
-        // already colored
-        if (coloring[vit->info()] == c) {
-            return false;
-        } else if (coloring[vit->info()] == other_color(c)) {
-            continue;
-        }
-
-        uf.link(uf.find_set(u->info()), uf.find_set(vit->info()));
-
-        // color it
-        if (!color(vit, T, other_color(c), r, coloring, uf))
-            return false;
-    } while (++vit != T.incident_vertices(u));
-
-    return true;
-
+int connect(boost::disjoint_sets_with_storage<> &uf, Delaunay &T, int r) {
+    for (auto uit = T.finite_vertices_begin(); uit != T.finite_vertices_end(); ++uit) {
+        auto vit = T.incident_vertices(uit);
+        do
+        {
+            if (T.is_infinite(vit)) continue;
+            if (CGAL::squared_distance(uit->point(), vit->point()) <= r * r)
+                uf.link(uit->info(), vit->info());
+        } while (++vit != T.incident_vertices(uit));
+    }
+    return 0;
 }
 
 int main(int argc, char const *argv[])
@@ -76,26 +57,11 @@ int main(int argc, char const *argv[])
         Delaunay T;
         T.insert(radio_stations.begin(), radio_stations.end());
 
-        std::vector<std::pair<int, Delaunay::Vertex_handle>> degree_to_vertices;
-        for (auto vit = T.finite_vertices_begin(); vit != T.finite_vertices_end(); vit++) {
-            degree_to_vertices.push_back(std::make_pair(vit->degree(), vit));
-        }
-
-        std::sort(degree_to_vertices.begin(), degree_to_vertices.end());
-
-        std::vector<int> coloring(n, COLOR_UNKNOWN);
-        boost::disjoint_sets_with_storage<> uf(n);
-
-        Delaunay::Vertex_handle u; int degree;
-
+        // TODO
         int valid = true;
-        while (!degree_to_vertices.empty() && valid) {
-            std::tie(degree, u) = degree_to_vertices.back(); degree_to_vertices.pop_back();
-            if (coloring[u->info()] != COLOR_UNKNOWN)
-                continue;
 
-            valid = color(u, T, COLOR_BLACK, r, coloring, uf);
-        }
+        boost::disjoint_sets_with_storage<> uf(n);
+        connect(uf, T, r);
 
 
         for (auto &clue : clues) {

@@ -1,22 +1,58 @@
 // Includes
 // ========
 #include <iostream>
+// BGL includes
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/cycle_canceling.hpp>
+#include <boost/graph/push_relabel_max_flow.hpp>
+#include <boost/graph/successive_shortest_path_nonnegative_weights.hpp>
+#include <boost/graph/find_flow_cost.hpp>
 
-// example: how to solve a simple explicit LP
-#include <CGAL/QP_models.h>
-#include <CGAL/QP_functions.h>
-#include <CGAL/Gmpz.h>
+// BFS
+#include <queue>
 
-// choose input type (input coefficients must fit)
-typedef int IT;
-// choose exact type for solver (CGAL::Gmpz or CGAL::Gmpq)
-typedef CGAL::Gmpz ET;
+// Graph Type with nested interior edge properties for Cost Flow Algorithms
+typedef boost::adjacency_list_traits<boost::vecS, boost::vecS, boost::directedS> traits;
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS, boost::no_property,
+    boost::property<boost::edge_capacity_t, long,
+        boost::property<boost::edge_residual_capacity_t, long,
+            boost::property<boost::edge_reverse_t, traits::edge_descriptor,
+                boost::property <boost::edge_weight_t, long> > > > > graph;
 
-// program and solution types
-typedef CGAL::Quadratic_program<IT> Program;
-typedef CGAL::Quadratic_program_solution<ET> Solution;
+typedef boost::graph_traits<graph>::edge_descriptor             edge_desc;
+typedef boost::graph_traits<graph>::out_edge_iterator           out_edge_it; // Iterator
+
+typedef boost::graph_traits<graph>::edge_iterator edge_it;
+
+#define UPPER_BOUND (1<<7)
 
 
+// Custom edge adder class
+class edge_adder {
+ graph &G;
+
+ public:
+  explicit edge_adder(graph &G) : G(G) {}
+  void add_edge(int from, int to, long capacity, long cost) {
+    auto c_map = boost::get(boost::edge_capacity, G);
+    auto r_map = boost::get(boost::edge_reverse, G);
+    auto w_map = boost::get(boost::edge_weight, G); // new!
+    const edge_desc e = boost::add_edge(from, to, G).first;
+    const edge_desc rev_e = boost::add_edge(to, from, G).first;
+    c_map[e] = capacity;
+    c_map[rev_e] = 0; // reverse edge has no capacity!
+    r_map[e] = rev_e;
+    r_map[rev_e] = e;
+    w_map[e] = cost;   // new assign cost
+    w_map[rev_e] = -cost;   // new negative cost
+  }
+};
+
+struct fruit {
+    int a;
+    int b;
+    int d;
+};
 
 int main(int argc, char const *argv[])
 {
@@ -25,42 +61,66 @@ int main(int argc, char const *argv[])
     {
         int n, m; std::cin >> n >> m;
 
-        Program lp (CGAL::SMALLER, true, 0, true, 1);
+        int N = n + 2;
 
+        int v_source = N - 2;
+        int v_target = N - 1;
+
+        graph G(N);
+        edge_adder adder(G);
+        auto c_map = boost::get(boost::edge_capacity, G);
+        auto r_map = boost::get(boost::edge_reverse, G);
+        auto rc_map = boost::get(boost::edge_residual_capacity, G);
+
+        // Add the edges
+        int sum_caps = 0;
+        int prev = 0;
         for (size_t i = 0; i < n - 1; i++)
         {
-            int c; std::cin >> c;
-            lp.set_b(i, c);
+            int cap; std::cin >> cap;
+            adder.add_edge(i, i + 1, cap, UPPER_BOUND);
+            sum_caps += cap;
+            int diff = cap - prev;
+            if (diff > 0) {
+                adder.add_edge(v_source, i, diff, 0);
+            } else if (diff < 0) {
+                adder.add_edge(i, v_target, -diff, 0);
+            }
+            prev = cap;
         }
+        adder.add_edge(n - 1, v_target, prev, 0);
 
-        std::vector<size_t> fruits_in[n];
-        std::vector<size_t> fruits_out[n];
-
-        for (size_t j = 0; j < m; j++)
+        std::vector<struct fruit> fruits;
+        for (size_t i = 0; i < m; i++)
         {
             int a, b, d; std::cin >> a >> b >> d;
-            fruits_in[a].push_back(j);
-            fruits_out[b].push_back(j);
-            lp.set_c(j, -d);
+            adder.add_edge(a, b, 1, -d + (b - a) * UPPER_BOUND);
+            fruits.push_back({a, b, d});
         }
 
-        std::vector<int> in_pipe(m, false);
 
-        for (size_t i = 0; i < n - 1; i++)
-        {
-            for (size_t f : fruits_in[i])   in_pipe[f] = true;
-            for (size_t f : fruits_out[i])  in_pipe[f] = false;
-            for (size_t j = 0; j < m; j++)
-            {
-                if (in_pipe[j]) lp.set_a(j, i, 1);
-            }
+        // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
+        int flow1 = boost::push_relabel_max_flow(G, v_source, v_target);
+        boost::successive_shortest_path_nonnegative_weights(G, v_source, v_target);
+        long cost2 = boost::find_flow_cost(G);
+
+        edge_desc edge; int flag;
+        for (size_t i = 0; i < n - 1; ++i) {
+            boost::tie(edge, flag) = boost::edge(i, i + 1, G);
+            assert(flag);
+            if ((c_map[edge] - rc_map[edge]) > 0)
+                cost2 -= (c_map[edge] - rc_map[edge]) * UPPER_BOUND;
         }
 
-        Solution s = CGAL::solve_linear_program(lp, ET());
-        if (s.is_optimal()) {
-            std::cout << (int) -CGAL::to_double(s.objective_value()) << std::endl;
+        for (struct fruit &f: fruits) {
+            boost::tie(edge, flag) = boost::edge(f.a, f.b, G);
+            assert(flag);
+            if ((c_map[edge] - rc_map[edge]) > 0)
+                cost2 -= (f.b - f.a) * UPPER_BOUND;
         }
 
+
+        std::cout << -cost2 << std::endl;
 
     }
 

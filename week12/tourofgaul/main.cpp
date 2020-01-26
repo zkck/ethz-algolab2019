@@ -98,26 +98,31 @@ int main(int argc, char const *argv[])
             fruits.push_back({a, b, d});
         }
 
-
-        // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
-        int flow1 = boost::push_relabel_max_flow(G, v_source, v_target);
         boost::successive_shortest_path_nonnegative_weights(G, v_source, v_target);
         long cost2 = boost::find_flow_cost(G);
 
-        edge_desc edge; int flag;
-        for (size_t i = 0; i < n - 1; ++i) {
-            boost::tie(edge, flag) = boost::edge(i, i + 1, G);
-            assert(flag);
-            if ((c_map[edge] - rc_map[edge]) > 0)
-                cost2 -= (c_map[edge] - rc_map[edge]) * UPPER_BOUND;
+        out_edge_it ebeg, eend;
+
+        // Adjusting the cost
+
+        // The free spots that enter the stop chain at a certain vertex
+        // v will go over n - 1 - v stops, meaning that we need to reduce the cost by that
+        // amount times the upper bound.
+        for (boost::tie(ebeg, eend) = boost::out_edges(v_source, G); ebeg != eend; ebeg++) {
+            int v = boost::target(*ebeg, G);
+            assert(0 <= v && v < n);
+            cost2 -= (n - 1 - v) * (c_map[*ebeg] - rc_map[*ebeg]) * UPPER_BOUND;
         }
 
-        for (struct fruit &f: fruits) {
-            boost::tie(edge, flag) = boost::edge(f.a, f.b, G);
-            assert(flag);
-            if ((c_map[edge] - rc_map[edge]) > 0)
-                cost2 -= (f.b - f.a) * UPPER_BOUND;
+        // The free spots that exit the stop chain at a certain vertex v will not go
+        // over n - 1 - v stops, meaning that we need to readjust the cost by incresing the cost
+        // by the number of unvisited stops times the upper bound.
+        for (boost::tie(ebeg, eend) = boost::out_edges(v_target, G); ebeg != eend; ebeg++) {
+            int v = boost::target(*ebeg, G);
+            assert(0 <= v && v < n);
+            cost2 += (n - 1 - v) * (rc_map[*ebeg] - c_map[*ebeg]) * UPPER_BOUND;
         }
+
 
 
         std::cout << -cost2 << std::endl;

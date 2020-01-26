@@ -70,6 +70,7 @@ int main(int argc, char const *argv[])
         edge_adder adder(G);
         auto c_map = boost::get(boost::edge_capacity, G);
         auto r_map = boost::get(boost::edge_reverse, G);
+        auto w_map = boost::get(boost::edge_weight, G); // new!
         auto rc_map = boost::get(boost::edge_residual_capacity, G);
 
         // Add the edges
@@ -90,12 +91,22 @@ int main(int argc, char const *argv[])
         }
         adder.add_edge(n - 1, v_target, prev, 0);
 
-        std::vector<struct fruit> fruits;
         for (size_t i = 0; i < m; i++)
         {
             int a, b, d; std::cin >> a >> b >> d;
-            adder.add_edge(a, b, 1, -d + (b - a) * UPPER_BOUND);
-            fruits.push_back({a, b, d});
+            int cost = -d + (b - a) * UPPER_BOUND;
+            // check if fruit exists
+            int exists = false;
+            out_edge_it ebeg, eend;
+            boost::tie(ebeg, eend) = boost::out_edges(a, G);
+            for (; !exists && ebeg != eend; ebeg++) {
+                if (boost::target(*ebeg, G) == b && w_map[*ebeg] == cost) {
+                    c_map[*ebeg]++;
+                    exists = true;
+                }
+            }
+            if (!exists)
+                adder.add_edge(a, b, 1, cost);
         }
 
         boost::successive_shortest_path_nonnegative_weights(G, v_source, v_target);

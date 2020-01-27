@@ -13,6 +13,43 @@ typedef CGAL::Triangulation_data_structure_2<Vb>                    Tds;
 typedef CGAL::Delaunay_triangulation_2<K, Tds>                      Delaunay;
 typedef Delaunay::Point                                             Point;
 
+// BGL includes
+#include <boost/graph/adjacency_list.hpp>
+
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::directedS> graph;
+typedef boost::graph_traits<graph>::edge_iterator edge_it;
+typedef boost::graph_traits<graph>::out_edge_iterator out_edge_it;
+
+int other_color(int color) { return color ? 0 : 1; }
+int do_coloring(size_t u, int color, graph &G, std::vector<int> &coloring) {
+    coloring[u] = color;
+    out_edge_it ebeg, eend;
+    for (boost::tie(ebeg, eend) = boost::out_edges(u, G); ebeg != eend; ebeg++) {
+        size_t v = boost::target(*ebeg, G);
+        if (coloring[v] < 0)
+            do_coloring(v, other_color(color), G, coloring);
+        else if (coloring[v] == coloring[u])
+            return false;
+    }
+    return true;
+}
+
+int add_edges_under(Delaunay T, Delaunay::Vertex_handle u, int r, graph &G) {
+    std::vector<Delaunay::Vertex_handle> to_remove;
+    do {
+        for (auto &v : to_remove) {
+            boost::add_edge(u->info(), v->info(), G);
+            T.remove(u);
+        }
+        auto v = T.incident_vertices(u);
+        do {
+            if (T.is_infinite(v)) continue;
+            if (CGAL::squared_distance(u->point(), v->point()) <= r * r)
+                to_remove.push_back(v);
+        } while (++v != T.incident_vertices(u));
+    } while (!to_remove.empty());
+    return 0;
+}
 
 int connect(boost::disjoint_sets_with_storage<> &uf, Delaunay &T, int r) {
     for (auto uit = T.finite_vertices_begin(); uit != T.finite_vertices_end(); ++uit) {
@@ -57,8 +94,19 @@ int main(int argc, char const *argv[])
         Delaunay T;
         T.insert(radio_stations.begin(), radio_stations.end());
 
-        // TODO
+        graph G(n);
+        for (auto uit = T.finite_vertices_begin(); uit != T.finite_vertices_end(); ++uit) {
+            add_edges_under(T, uit, r, G);
+        }
+
         int valid = true;
+        std::vector<int> coloring(n, -1);
+        for (size_t i = 0; i < n && valid; i++) {
+            if (coloring[i] != -1) continue;
+            valid = do_coloring(i, 0, G, coloring);
+        }
+
+
 
         boost::disjoint_sets_with_storage<> uf(n);
         connect(uf, T, r);

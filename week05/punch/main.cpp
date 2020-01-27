@@ -3,44 +3,47 @@
 #include <algorithm>
 #include <limits>
 
+struct beverage {
+    int cost;
+    int volume;
+};
+
+int n, k;
+std::vector<beverage> beverages;
+
+std::vector<std::vector<int>> memo;
+double cheapest(int i, int ppl) {
+    if (ppl >= k)   return 0;
+    if (i == n)     return std::numeric_limits<double>::infinity();
+    if (memo[i][ppl] >= 0) return memo[i][ppl];
+    double result = cheapest(i, ppl + beverages[i].volume) + beverages[i].cost;
+    result = std::min(result, cheapest(i + 1, ppl));
+    memo[i][ppl] = result;
+    return result;
+}
+
 int main(int argc, char const *argv[])
 {
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0)
     {
-        int n, k; std::cin >> n >> k;
+        std::cin >> n >> k;
 
         // beverage is a (cost, volume) pair
-        std::vector<std::pair<int, int>> beverages;
+        beverages.clear();
         beverages.reserve(n);
 
         for (size_t i = 0; i < n; i++)
         {
-            int c, v; std::cin >> c >> v;
-            beverages.push_back(std::make_pair(c, v));
+            struct beverage beverage;
+            std::cin >> beverage.cost >> beverage.volume;
+            beverages.push_back(beverage);
         }
 
-        // find best drink for remaining liters
-        int remaining = k;
-        int cost = 0;
-        while (remaining > 0) {
-            // find best drink
-            int bd = -1;
-            double bd_ratio = -std::numeric_limits<double>::infinity();
-            for (size_t i = 0; i < n; i++)
-            {
-                std::pair<int, int> bev = beverages[i];
-                double ratio = std::min(bev.second, remaining) / (double) bev.first;
-                if (ratio > bd_ratio) {
-                    bd = i;
-                    bd_ratio = ratio;
-                }
-            }
-            remaining -= beverages[bd].second;
-            cost += beverages[bd].first;
-        }
+        memo.clear();
+        memo.resize(n, std::vector<int>(k, -1));
+        std::cout << (int) cheapest(0, 0) << std::endl;
 
-        std::cout << cost << std::endl;
     }
 
     return 0;

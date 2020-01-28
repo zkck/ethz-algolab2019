@@ -16,10 +16,9 @@ typedef CGAL::Quadratic_program_solution<ET> Solution;
 
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Delaunay_triangulation_2.h>
-#include <CGAL/Triangulation_vertex_base_with_info_2.h>
 #include <vector>
 typedef CGAL::Exact_predicates_inexact_constructions_kernel         K;
-typedef CGAL::Triangulation_vertex_base_with_info_2<unsigned, K>    Vb;
+typedef CGAL::Triangulation_vertex_base_2<K>                        Vb;
 typedef CGAL::Triangulation_data_structure_2<Vb>                    Tds;
 typedef CGAL::Delaunay_triangulation_2<K, Tds>                      Delaunay;
 typedef Delaunay::Point                                             Point;
@@ -101,17 +100,18 @@ int main(int argc, char const *argv[])
         // This suggest triangulating the stadiums/warehouses, and checking if the contour
         // line is in range of any stadiums or warehouses.
 
-        std::vector<int> num_conflicts(m + n, 0);
-
-        size_t index = 0;
-        std::vector<std::pair<Point, size_t>> points;
+        std::vector<Point> points;
         for (auto &stadium : stadiums)
-            points.push_back(std::make_pair(Point(stadium.x, stadium.y), index++));
+            points.push_back(Point(stadium.x, stadium.y));
         for (auto &warehouse : warehouses)
-            points.push_back(std::make_pair(Point(warehouse.x, warehouse.y), index++));
+            points.push_back(Point(warehouse.x, warehouse.y));
 
         Delaunay T;
         T.insert(points.begin(), points.end());
+
+        // Keep track of conflicting contour lines on stadiums and on warehouses
+        std::vector<size_t> st_conflicts[m];
+        std::vector<size_t> wh_conflicts[n];
 
         for (size_t i = 0; i < c; i++)
         {
@@ -126,19 +126,21 @@ int main(int argc, char const *argv[])
             if (CGAL::squared_distance(p, v->point()) > r * r)
                 continue;
 
-            index = 0;
-
             // Check stadiums conflicts
-            for (auto &st : stadiums)
-                num_conflicts[index++] += CGAL::squared_distance(Point(st.x, st.y), p) >= r * r
-                    ? 0
-                    : 1;
+            for (size_t j = 0; j < m; ++j) {
+                auto st = stadiums[j];
+                if (CGAL::squared_distance(Point(st.x, st.y), p) < r * r) {
+                    st_conflicts[j].push_back(i);
+                }
+            }
 
             // Check warehouse conflicts
-            for (auto &wh : warehouses)
-                num_conflicts[index++] += CGAL::squared_distance(Point(wh.x, wh.y), p) >= r * r
-                    ? 0
-                    : 1;
+            for (size_t j = 0; j < n; ++j) {
+                auto wh = warehouses[j];
+                if (CGAL::squared_distance(Point(wh.x, wh.y), p) < r * r) {
+                    wh_conflicts[j].push_back(i);
+                }
+            }
         }
 
         Program lp (CGAL::SMALLER, true, 0, false, 0);
@@ -198,8 +200,12 @@ int main(int argc, char const *argv[])
 
         for (size_t wh = 0; wh < n; wh++) {
             for (size_t st = 0; st < m; st++) {
-                int num_confs =  num_conflicts[m + wh] + num_conflicts[st];
-                lp.set_c(quantity(wh, st), -r[wh][st] - (num_confs / 100.0));
+                std::vector<size_t> conflicts;
+                std::set_union(
+                    st_conflicts[st].begin(), st_conflicts[st].end(),
+                    wh_conflicts[wh].begin(), wh_conflicts[wh].end(),
+                    std::back_inserter(conflicts));
+                lp.set_c(quantity(wh, st), -r[wh][st] + (conflicts.size() / 100.0));
             }
         }
 

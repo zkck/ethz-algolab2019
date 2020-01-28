@@ -201,11 +201,17 @@ int main(int argc, char const *argv[])
         for (size_t wh = 0; wh < n; wh++) {
             for (size_t st = 0; st < m; st++) {
                 std::vector<size_t> conflicts;
-                std::set_union(
+                std::set_intersection(
                     st_conflicts[st].begin(), st_conflicts[st].end(),
                     wh_conflicts[wh].begin(), wh_conflicts[wh].end(),
                     std::back_inserter(conflicts));
-                lp.set_c(quantity(wh, st), -r[wh][st] + (conflicts.size() / 100.0));
+                int num_confs = st_conflicts[st].size() + wh_conflicts[wh].size();
+                if (!conflicts.empty()) {
+                    num_confs = std::max(st_conflicts[st].size(), wh_conflicts[wh].size());
+                    num_confs -= conflicts.size();
+                }
+                lp.set_c(quantity(wh, st), -r[wh][st] + (num_confs / 100.0));
+
             }
         }
 

@@ -62,8 +62,6 @@ int main(int argc, char const *argv[])
         // S : number of rental stations (<= 10)
         int N, S; std::cin >> N >> S;
 
-        // std::cout << "  parsing..." << std::endl;
-
         // l[i] : the number of cars placed at a station (<= 100)
         int num_cars = 0;
         int l[S];
@@ -89,9 +87,6 @@ int main(int argc, char const *argv[])
             requests.push_back( { s, t, d, a, p } );
         }
 
-        // std::cout << "  mapping..." << std::endl;
-
-
         // create mapping of the times;
         std::vector<size_t> mapping(UPPER_BOUND + 1, -1);
 
@@ -105,12 +100,9 @@ int main(int argc, char const *argv[])
         //
         // Maximize profit.
 
-        // IDEA
+        // IDEA (100)
         //
-        // MCMF with each layer corresponding to a time, each flow unit corresponding to a car,
-        // each job a
-
-        // std::cout << "  building..." << std::endl;
+        // Do path compression.
 
         graph G(S * times.size());
         auto c_map = boost::get(boost::edge_capacity, G);
@@ -144,8 +136,6 @@ int main(int argc, char const *argv[])
             else
                 adder.add_edge(u, v, 1, cost);
         }
-
-        printf("  m=%ld n=%ld\n", boost::num_edges(G), boost::num_vertices(G));
 
         // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
         boost::successive_shortest_path_nonnegative_weights(G, source, sink);

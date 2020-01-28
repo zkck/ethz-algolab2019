@@ -103,39 +103,84 @@ int main(int argc, char const *argv[])
         // IDEA (100)
         //
         // Do path compression.
+        //
+        // V1
+        //
+        // The timestamps in one lane can be compressed to only those that are used.
+        //
+        // Problem: There can be edges that go backwards, making it hard to have non-negative
+        //          costs.
+        //
+        // V2 <-- TODO
+        //
+        // A series of unused timestamps in a lane can be compressed by just summing up their
+        // costs.
 
-        graph G(S * times.size());
+
+        std::vector<int> used[S];
+        for (size_t i = 0; i < S; i++) {
+            used[i].resize(times.size());
+        }
+        for (auto &req : requests) {
+            size_t t1 = mapping[req.d];
+            size_t t2 = mapping[req.a];
+            used[req.s][t1] = true;
+            used[req.t][t2] = true;
+        }
+
+        graph G;
+        edge_adder adder(G);
         auto c_map = boost::get(boost::edge_capacity, G);
         auto w_map = boost::get(boost::edge_weight, G); // new!
-        edge_adder adder(G);
+
         vertex_desc source = boost::add_vertex(G);
         vertex_desc sink   = boost::add_vertex(G);
 
         const int INF = std::numeric_limits<int>::max();
 
-        for (size_t i = 0; i < S; ++i) {
-            adder.add_edge(source, i, l[i], 0);
-            for (size_t j = 0; j < times.size() - 1; j++) {
-                adder.add_edge(j * S + i, (j + 1) * S + i, INF, COST_COMP);
+        std::vector<int> associated_vertex[S];
+        for (size_t i = 0; i < S; i++)
+        {
+            associated_vertex[i].resize(times.size(), -1);
+
+            // first vertex of the chain
+            int last = boost::add_vertex(G);
+            associated_vertex[i][0] = last;
+            adder.add_edge(source, last, l[i], 0);
+
+            // join vertices of the chain
+            int pending = 1;
+            for (size_t j = 1; j < times.size(); j++)
+            {
+                if (used[i][j] || j == times.size() - 1) {
+                    int node = boost::add_vertex(G);
+                    associated_vertex[i][j] = node;
+                    adder.add_edge(last, node, INF, pending * COST_COMP);
+                    last = node;
+                    pending = 1;
+                } else {
+                    pending++;
+                }
             }
-            adder.add_edge((times.size() - 1) * S + i, sink, INF, 0);
+
+            // join chain to sink
+            adder.add_edge(last, sink, INF, 0);
         }
 
-        edge_desc edge; int flag;
         for (auto &req : requests) {
             size_t t1 = mapping[req.d];
             size_t t2 = mapping[req.a];
 
-            size_t u = t1 * S + req.s;
-            size_t v = t2 * S + req.t;
+            int u = associated_vertex[req.s][t1];
+            int v = associated_vertex[req.t][t2];
+
+            assert(u != -1 && v != -1);
+
             int cost = (t2 - t1) * COST_COMP - req.p;
 
-            boost::tie(edge, flag) = boost::edge(u, v, G);
-            if (flag && w_map[edge] == cost)
-                c_map[edge]++;
-            else
-                adder.add_edge(u, v, 1, cost);
+            adder.add_edge(u, v, 1, cost);
         }
+
 
         // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
         boost::successive_shortest_path_nonnegative_weights(G, source, sink);

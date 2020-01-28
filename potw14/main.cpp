@@ -104,7 +104,39 @@ int main(int argc, char const *argv[])
         //
         // Do path compression.
 
-        graph G(S * times.size());
+
+        std::vector<int> used[S];
+        for (size_t i = 0; i < S; i++) {
+            used[i].resize(times.size());
+        }
+        for (auto &req : requests) {
+            size_t t1 = mapping[req.d];
+            size_t t2 = mapping[req.a];
+            used[req.s][t1] = true;
+            used[req.t][t2] = true;
+        }
+
+        int min_length = 0;
+
+        // Mapping to compressed
+        std::vector<int> compressed_t[S];
+        for (size_t i = 0; i < S; i++)
+        {
+            compressed_t[i].resize(times.size(), -1);
+
+            // number of used times
+            int num_used = 0;
+            for (size_t j = 0; j < times.size(); j++)
+            {
+                if (used[i][j]) {
+                    compressed_t[i][j] = num_used++;
+                }
+            }
+            min_length = std::max(min_length, num_used);
+        }
+
+
+        graph G(S * min_length);
         auto c_map = boost::get(boost::edge_capacity, G);
         auto w_map = boost::get(boost::edge_weight, G); // new!
         edge_adder adder(G);
@@ -115,32 +147,35 @@ int main(int argc, char const *argv[])
 
         for (size_t i = 0; i < S; ++i) {
             adder.add_edge(source, i, l[i], 0);
-            for (size_t j = 0; j < times.size() - 1; j++) {
-                adder.add_edge(j * S + i, (j + 1) * S + i, INF, COST_COMP);
+            for (size_t j = 0; j < min_length - 1; j++) {
+                adder.add_edge(j * S + i, (j + 1) * S + i, INF, 0);
             }
-            adder.add_edge((times.size() - 1) * S + i, sink, INF, 0);
+            adder.add_edge((min_length - 1) * S + i, sink, INF, 0);
         }
+
 
         edge_desc edge; int flag;
         for (auto &req : requests) {
             size_t t1 = mapping[req.d];
             size_t t2 = mapping[req.a];
 
-            size_t u = t1 * S + req.s;
-            size_t v = t2 * S + req.t;
-            int cost = (t2 - t1) * COST_COMP - req.p;
+            size_t u = compressed_t[req.s][t1] * S + req.s;
+            size_t v = compressed_t[req.t][t2] * S + req.t;
+            int cost =  - req.p;
 
-            boost::tie(edge, flag) = boost::edge(u, v, G);
-            if (flag && w_map[edge] == cost)
-                c_map[edge]++;
-            else
-                adder.add_edge(u, v, 1, cost);
+            adder.add_edge(u, v, 1, cost);
         }
 
+
+        // Now edges don't necessarily go forward, need to adjust cost
+
+
+
         // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
-        boost::successive_shortest_path_nonnegative_weights(G, source, sink);
+        int flow = boost::push_relabel_max_flow(G, source, sink);
+        boost::cycle_canceling(G);
         int cost2 = boost::find_flow_cost(G);
-        std::cout << -(cost2 - num_cars * (times.size() - 1) * COST_COMP) << "\n";
+        std::cout << -cost2 << "\n";
 
 
     }

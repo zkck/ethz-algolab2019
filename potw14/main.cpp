@@ -103,6 +103,18 @@ int main(int argc, char const *argv[])
         // IDEA (100)
         //
         // Do path compression.
+        //
+        // V1
+        //
+        // The timestamps in one lane can be compressed to only those that are used.
+        //
+        // Problem: There can be edges that go backwards, making it hard to have non-negative
+        //          costs.
+        //
+        // V2 <-- TODO
+        //
+        // A series of unused timestamps in a lane can be compressed by just summing up their
+        // costs.
 
 
         std::vector<int> used[S];

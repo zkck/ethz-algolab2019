@@ -65,9 +65,12 @@ int main(int argc, char const *argv[])
         // std::cout << "  parsing..." << std::endl;
 
         // l[i] : the number of cars placed at a station (<= 100)
+        int num_cars = 0;
         int l[S];
-        for (size_t i = 0; i < S; i++)
+        for (size_t i = 0; i < S; i++) {
             std::cin >> l[i];
+            num_cars += l[i];
+        }
 
         std::set<int> times;
         std::vector<struct request> requests;
@@ -110,6 +113,8 @@ int main(int argc, char const *argv[])
         // std::cout << "  building..." << std::endl;
 
         graph G(S * times.size());
+        auto c_map = boost::get(boost::edge_capacity, G);
+        auto w_map = boost::get(boost::edge_weight, G); // new!
         edge_adder adder(G);
         vertex_desc source = boost::add_vertex(G);
         vertex_desc sink   = boost::add_vertex(G);
@@ -124,21 +129,28 @@ int main(int argc, char const *argv[])
             adder.add_edge((times.size() - 1) * S + i, sink, INF, 0);
         }
 
+        edge_desc edge; int flag;
         for (auto &req : requests) {
             size_t t1 = mapping[req.d];
             size_t t2 = mapping[req.a];
-            // std::cout << t1 << " " << t2 << std::endl;
-            adder.add_edge(t1 * S + req.s, t2 * S + req.t, 1, (t2 - t1) * COST_COMP - req.p);
+
+            size_t u = t1 * S + req.s;
+            size_t v = t2 * S + req.t;
+            int cost = (t2 - t1) * COST_COMP - req.p;
+
+            boost::tie(edge, flag) = boost::edge(u, v, G);
+            if (flag && w_map[edge] == cost)
+                c_map[edge]++;
+            else
+                adder.add_edge(u, v, 1, cost);
         }
 
-        // std::cout << "  size = " << boost::num_vertices(G) << std::endl;
-
+        printf("  m=%ld n=%ld\n", boost::num_edges(G), boost::num_vertices(G));
 
         // Option 2: Min Cost Max Flow with successive_shortest_path_nonnegative_weights
-        int flow1 = boost::push_relabel_max_flow(G, source, sink);
         boost::successive_shortest_path_nonnegative_weights(G, source, sink);
         int cost2 = boost::find_flow_cost(G);
-        std::cout << -(cost2 - flow1 * (times.size() - 1) * COST_COMP) << "\n";
+        std::cout << -(cost2 - num_cars * (times.size() - 1) * COST_COMP) << "\n";
 
 
     }

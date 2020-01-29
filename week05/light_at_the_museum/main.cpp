@@ -1,109 +1,13 @@
 #include <iostream>
 #include <vector>
-
-void binary_print(size_t i, int N) {
-    for (size_t idx = 0; idx < N; ++idx) {
-        if (i & 1<<idx) std::cout << '1';
-        else            std::cout << '0';
-    }
-    std::cout << std::endl;
-}
-
+#include <map>
+#include <algorithm>
 
 int binary_count(int i, int N) {
     int count = 0;
     for (size_t idx = 0; idx < N; ++idx) {
-        if (i & 1<<idx) count++;
-    }
-    return count;
-}
-
-
-int binary_count_rev(int i, int N) {
-    int count = 0;
-    for (size_t idx = 0; idx < N; ++idx) {
         if (!(i & 1<<idx)) count++;
     }
-    return count;
-}
-
-int num_sums(int brightness,
-    int off[],
-    int on[],
-    int i,
-    int N,
-    int subset,
-    int mask,
-    std::vector<int> &subsets,
-    std::vector<int> &masks)
-{
-    if (brightness < 0) return 0;
-    if (i == N) {
-        if (brightness == 0) {
-            subsets.push_back(subset);
-            masks.push_back(mask);
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-    int result = 0;
-    if (on[i] == 0 && off[i] == 0)
-        result += num_sums(brightness, off, on, i + 1, N, subset, mask, subsets, masks);
-    else {
-        result += num_sums(brightness - off[i],
-            off,
-            on,
-            i + 1,
-            N,
-            subset,         // does not change since we are adding an off (0) switch
-            mask | (1<<i),  // changes because we are "setting" this switch
-            subsets,
-            masks);
-        result += num_sums(brightness - on[i],
-            off,
-            on,
-            i + 1,
-            N,
-            subset | (1<<i),    // changes because we have the switch on
-            mask | (1<<i),      // changes because we are "setting" this switch
-            subsets,
-            masks);
-    }
-    return result;
-}
-
-int num_compatible(std::vector<int> &compatible,
-    std::vector<int> subsets[],
-    std::vector<int> masks[],
-    int i,
-    int M,
-    int mask,
-    int subset)
-{
-    if (i == M) {
-        // Since we are maximizing the number of 1s, those that are not constrained by the mask
-        // can be set to 1
-        compatible.push_back(~mask | subset);
-        return 1;
-    }
-
-    // For each subset and their corresponding mask, check if it is compatible
-    // with the mask/subset up until this point
-    int count = 0;
-    for (size_t j = 0; j < subsets[i].size(); j++) {
-        int common = mask & masks[i][j];
-        if ((subset & common) == (subsets[i][j] & common)) {
-            count += num_compatible(compatible,
-                subsets,
-                masks,
-                i + 1,
-                M,
-                mask    | masks[i][j],
-                subset  | subsets[i][j]);
-        }
-    }
-
     return count;
 }
 
@@ -123,23 +27,78 @@ int main(int argc, char const *argv[])
             for (size_t j = 0; j < M; j++)
                 std::cin >> on[j][i] >> off[j][i];
 
-        std::vector<int> subsets[M];
-        std::vector<int> masks[M];
-        for (size_t i = 0; i < M; i++) {
-            num_sums(b[i], off[i], on[i], 0, N, 0, 0, subsets[i], masks[i]);
+        // IDEA
+        //
+        // For each room find the satisfying subsets, using split and list. Then move to
+        // the next room and from those satisfying subsets,
+
+        // high     |      low
+        //
+        // ---L2--- | ---L1---
+
+        // L1 is first N / 2 numbers
+        const int L1 = N / 2;
+
+        // L2 is remaining numbers
+        const int L2 = N - L1;
+
+        std::vector<int> satisfying_subsets;
+
+        if (M == 1) {
+
+            size_t i = 0;
+
+            // Section 1: create the set to compare to
+            std::multimap<long, int> L2set;
+            for (int subset = 0; subset < 1<<L2; subset++) {
+                int sum = 0;
+                for (size_t j = 0; j < L2 && sum <= b[i]; j++) {
+                    if (subset & 1<<j) sum += on[i][j + L1];
+                    else               sum += off[i][j + L1];
+                }
+                if (sum <= b[i])
+                    L2set.insert(std::make_pair(sum, subset << L1));
+            }
+
+            // Section 2
+            for (int subset = 0; subset < 1<<L1; subset++) {
+                int sum = 0;
+                for (size_t j = 0; j < L1 && sum <= b[i]; j++) {
+                    if (subset & 1<<j) sum += on[i][j];
+                    else               sum += off[i][j];
+                }
+                if (sum <= b[i]) {
+                    auto range = L2set.equal_range(b[i] - sum);
+                    for (auto it = range.first; it != range.second; it++) {
+                        satisfying_subsets.push_back(subset | it->second);
+                    }
+                }
+            }
+
+        } else {
+
+            for (int subset = 0; subset < 1<<N; subset++) {
+                int correct = true;
+                for (size_t i = 0; i < M && correct; i++) {
+                    int sum = 0;
+                    for (size_t j = 0; j < N && sum <= b[i]; j++) {
+                        if (subset & 1<<j) sum += on[i][j];
+                        else               sum += off[i][j];
+                    }
+                    if (sum != b[i]) correct = false;
+                }
+                if (correct) satisfying_subsets.push_back(subset);
+            }
         }
 
-        std::vector<int> compatible;
-        int n = num_compatible(compatible, subsets, masks, 0, M, 0, 0);
-
         int min_length = N;
-        for (int c : compatible) {
-            int count = binary_count_rev(c, N);
+        for (int ss : satisfying_subsets) {
+            int count = binary_count(ss, N);
             if (count < min_length)
                 min_length = count;
         }
 
-        if (n == 0)
+        if (satisfying_subsets.empty())
             std::cout << "impossible" << std::endl;
         else
             std::cout << min_length << std::endl;

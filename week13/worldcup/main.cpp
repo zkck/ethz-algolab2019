@@ -40,14 +40,6 @@ struct stadium {
 
 int n, m, c;
 
-double floor_to_double(const ET x) {
-  double a = std::floor(CGAL::to_double(x));
-  while (a > x) a -= 1;
-  while (a+1 <= x) a += 1;
-  return a;
-}
-
-
 int quantity(int wh, int st) {
     return wh * m + st;
 }
@@ -129,7 +121,7 @@ int main(int argc, char const *argv[])
             // Check stadiums conflicts
             for (size_t j = 0; j < m; ++j) {
                 auto st = stadiums[j];
-                if (CGAL::squared_distance(Point(st.x, st.y), p) < r * r) {
+                if (CGAL::squared_distance(Point(st.x, st.y), p) <= r * r) {
                     st_conflicts[j].push_back(i);
                 }
             }
@@ -137,7 +129,7 @@ int main(int argc, char const *argv[])
             // Check warehouse conflicts
             for (size_t j = 0; j < n; ++j) {
                 auto wh = warehouses[j];
-                if (CGAL::squared_distance(Point(wh.x, wh.y), p) < r * r) {
+                if (CGAL::squared_distance(Point(wh.x, wh.y), p) <= r * r) {
                     wh_conflicts[j].push_back(i);
                 }
             }
@@ -219,7 +211,10 @@ int main(int argc, char const *argv[])
 
         Solution s = CGAL::solve_linear_program(lp, ET());
         if (s.is_optimal()) {
-            std::cout << (int) std::floor(-CGAL::to_double(s.objective_value())) << std::endl;
+            double a = std::floor(CGAL::to_double(-s.objective_value()));
+            while (a >      -s.objective_value()) a -= 1;
+            while (a+1 <=   -s.objective_value()) a += 1;
+            std::cout << (int) a << std::endl;
         } else if (s.is_unbounded()) {
             std::cout << "nope" << std::endl;
         } else if (s.is_infeasible()) {

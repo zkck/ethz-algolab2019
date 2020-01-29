@@ -49,6 +49,7 @@ void NYDFS(int node, int l, std::multiset<int> &heats_along_path, std::deque<int
 
 int main(int argc, char const *argv[])
 {
+    std::ios_base::sync_with_stdio(false);
     int num_tests; std::cin >> num_tests;
     while (num_tests-- > 0)
     {

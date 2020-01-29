@@ -24,14 +24,17 @@ void NYDFS(int node, int l, std::multiset<int> &heats_along_path, std::deque<int
         int min = *heats_along_path.begin();
         if (max - min <= k)
             critical_points.insert(first);
+
+        // Pull chain down
         path.pop_front();
         auto it = heats_along_path.find(h[first]);
         heats_along_path.erase(it);
         for (int child : children[node]) {
-            NYDFS(child, l, heats_along_path, path);
+            NYDFS(child, l /* <-- notice it is unchanged */ , heats_along_path, path);
         }
         path.push_front(first);
         heats_along_path.insert(h[first]);
+
     } else {
         for (int child : children[node]) {
             NYDFS(child, l + 1, heats_along_path, path);
